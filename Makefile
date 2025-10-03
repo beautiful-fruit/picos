@@ -9,6 +9,9 @@ OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
 all: build $(BUILD)/main.elf
 
+$(BUILD):
+	mkdir -p $(BUILD)
+
 $(BUILD)/%.p1: src/%.c
 	$(CC) -c $< $(CFLAGS)
 	@rm -f $*.d
