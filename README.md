@@ -11,9 +11,13 @@ Second, download and unzip the following file in the repository directory:
 wget https://packs.download.microchip.com/Microchip.PIC18Fxxxx_DFP.1.7.171.atpack
 unzip Microchip.PIC18Fxxxx_DFP.1.7.171.atpack -d dfp
 ```
-Last, just use `make` to compile and have fun!
+- If you are using a 40 MHz external clock source, simply run:
 ```
 make
+```
+- If you are using the internal 4 MHz clock source, add the option INTERNAL_CLOCK=1:
+```
+make INTERNAL_CLOCK=1
 ```
 
 ## How To Run

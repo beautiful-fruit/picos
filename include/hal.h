@@ -5,8 +5,6 @@
 #pragma config LVP = OFF
 #pragma config PBADEN = OFF
 
-// #define EXTERNAL_CLOCK
-
 #ifdef EXTERNAL_CLOCK
 #define _XTAL_FREQ 40000000ULL
 #define ONE_SEC 39063

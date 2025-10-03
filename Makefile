@@ -6,6 +6,11 @@ CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude
 SRCS = src/hal.c src/main.c src/libc.c
 OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
+INTERNAL_CLOCK ?= 0
+
+ifeq ($(INTERNAL_CLOCK),0)
+    CFLAGS += -DEXTERNAL_CLOCK
+endif
 
 all: build $(BUILD)/main.elf
 
