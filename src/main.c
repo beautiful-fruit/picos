@@ -10,7 +10,7 @@
 inline void timer0_Init(void)
 {
 #ifdef EXTERNAL_CLOCK  // 40M
-    T0CONbits.T0CS = 1;
+    T0CONbits.T0CS = 0;
     T0CONbits.T0PS = 0b111;  // 256
 #else                        // 4M
     T0CONbits.T0CS = 0;
@@ -23,13 +23,14 @@ inline void timer0_Init(void)
     INTCONbits.TMR0IE = 1;
 }
 
-void __interrupt() ISR(void)
+void __attribute__((naked)) isr(void)
 {
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;
         printf("timer interrupt\n");
         set_timer_delay(ONE_SEC);
     }
+    asm("RETFIE");
 }
 
 void main(void)
@@ -40,5 +41,7 @@ void main(void)
     INTCONbits.GIE = 1;
     timer0_Init();
     set_timer_delay(ONE_SEC);
+    while (1)
+        ;
     PANIC("hello\n");
 }

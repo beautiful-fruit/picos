@@ -22,14 +22,14 @@ $(BUILD)/%.p1: src/%.c
 	@rm -f $*.d
 	@mv $(notdir $(basename $<)).p1 $@
 
+$(BUILD)/isr.o: src/isr.s
+	$(CC) -c src/isr.s $(CFLAGS)
+	@rm -f $*.d
+	@mv $(notdir $(basename $<)).o $@
 
-# $(BUILD)/hal.p1: $(SRC)/hal.c
-# 	$(CC) -c $(SRC)/hal.c $(CFLAGS)
-# 	rm hal.d
-# 	mv hal.p1 $(BUILD)/hal.p1
 
-$(BUILD)/main.elf: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/main.elf
+$(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o
+	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/main.elf $(BUILD)/isr.o
 
 clean:
 	rm $(BUILD)/*
