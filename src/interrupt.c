@@ -1,4 +1,5 @@
 #include <interrupt.h>
+#include <type.h>
 
 inline void timer0_init(void)
 {
@@ -16,12 +17,25 @@ inline void timer0_init(void)
     INTCONbits.TMR0IE = 1;
 }
 
+static Context context __at(0x0);
+
 void __attribute__((naked)) isr(void)
 {
+    context.status = STATUS;
+    context.wreg = WREG;
+    context.bsr = BSR;
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;
+
+        printf("status: %x, wreg: %x, bsr: %x\n", context.status, context.wreg,
+               context.bsr);
+        printf("stack top: 0x%x%x%x\n", TOSU, TOSH, TOSL);
+
         printf("timer interrupt\n");
         set_timer_delay(ONE_SEC);
+        STATUS = context.status;
+        WREG = context.wreg;
+        BSR = context.bsr;
     }
     asm("RETFIE");
 }
