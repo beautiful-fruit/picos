@@ -19,8 +19,14 @@ char *sp = NULL;
 
 void __attribute__((naked)) test_add_impl(void)
 {
+#define ret (*(sp - (6 - 5)))
+#define arg1 (*(sp - (6 - 3)))
+#define arg2 (*(sp - (6 - 4)))
     enter_user_func(6);
-    *(sp - (6 - 5)) = *(sp - (6 - 3)) + *(sp - (6 - 4));
+    ret = arg1 + arg2;
+#undef ret
+#undef arg1
+#undef arg2
     return_user_func(6);
 }
 
