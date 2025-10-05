@@ -3,7 +3,7 @@
 
 inline void timer0_init(void)
 {
-#ifdef EXTERNAL_CLOCK  // 40M
+#ifdef EXTERNAL_CLOCK        // 40M
     T0CONbits.T0PS = 0b111;  // 256
 #else                        // 4M
     T0CONbits.T0PS = 0b011;  // 16
