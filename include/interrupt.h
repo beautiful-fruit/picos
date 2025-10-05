@@ -8,6 +8,11 @@
         T0CONbits.TMR0ON = 1;              \
     } while (0)
 
+#define timer_disable() INTCONbits.TMR0IE = 0
+#define timer_enable() INTCONbits.TMR0IE = 1
+
+#define timer_pause() T0CONbits.TMR0ON = 0;
+#define timer_continue() T0CONbits.TMR0ON = 1;
 
 inline void timer0_init(void);
 
