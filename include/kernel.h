@@ -7,13 +7,11 @@ extern char *sp;
         *(sp - (stack_occupy - 1)) = TOSH; \
         *(sp - (stack_occupy - 2)) = TOSU; \
         asm("POP");                        \
-        timer_enable();                    \
     } while (0)
 
 
 #define return_user_func(stack_occupy)     \
     do {                                   \
-        timer_disable();                   \
         asm("PUSH");                       \
         TOSL = *(sp - stack_occupy);       \
         TOSH = *(sp - (stack_occupy - 1)); \

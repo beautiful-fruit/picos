@@ -10,9 +10,7 @@ char *sp = NULL;
         sp += 6;                     \
         *(sp - (6 - 3)) = arg1;      \
         *(sp - (6 - 4)) = arg2;      \
-        timer_disable();             \
         asm("CALL _test_add_impl");  \
-        timer_enable();              \
         output = *(sp - (6 - 5));    \
         sp -= 6;                     \
     } while (0)

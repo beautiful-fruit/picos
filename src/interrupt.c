@@ -22,18 +22,41 @@ void __attribute__((naked)) isr(void)
     context.status = STATUS;
     context.wreg = WREG;
     context.bsr = BSR;
+
+    context.pcl = TOSL;
+    context.pch = TOSH;
+    context.pcu = TOSU;
+    asm("POP");
+
+    context.rasp = STKPTR;
+
+    if (STKPTR & 0x1F) {
+        context.ral = TOSL;
+        context.rah = TOSH;
+        context.rau = TOSU;
+        asm("POP");
+    }
+
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;
-
-        printf("status: %x, wreg: %x, bsr: %x\n", context.status, context.wreg,
-               context.bsr);
-        printf("stack top: 0x%x%x%x\n", TOSU, TOSH, TOSL);
-
         printf("timer interrupt\n");
         set_timer_delay(ONE_SEC);
-        STATUS = context.status;
-        WREG = context.wreg;
-        BSR = context.bsr;
     }
+
+    if (context.rasp & 0x1F) {
+        asm("PUSH");
+        TOSL = context.ral;
+        TOSH = context.rah;
+        TOSU = context.rau;
+    }
+    asm("PUSH");
+    TOSL = context.pcl;
+    TOSH = context.pch;
+    TOSU = context.pcu;
+
+    STATUS = context.status;
+    WREG = context.wreg;
+    BSR = context.bsr;
+
     asm("RETFIE");
 }
