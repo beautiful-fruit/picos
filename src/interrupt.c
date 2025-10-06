@@ -1,4 +1,5 @@
 #include <interrupt.h>
+#include <kernel.h>
 #include <type.h>
 
 inline void timer0_init(void)
@@ -22,18 +23,41 @@ void __attribute__((naked)) isr(void)
     context.status = STATUS;
     context.wreg = WREG;
     context.bsr = BSR;
+
+    context.pcl = TOSL;
+    context.pch = TOSH;
+    context.pcu = TOSU;
+    asm("POP");
+
+    context.rasp = STKPTR;
+
+    if (STKPTR & 0x1F) {
+        *(sp - 3) = TOSL;
+        *(sp - 2) = TOSH;
+        *(sp - 1) = TOSU;
+        asm("POP");
+    }
+
     if (INTCONbits.TMR0IF) {
         INTCONbits.TMR0IF = 0;
-
-        printf("status: %x, wreg: %x, bsr: %x\n", context.status, context.wreg,
-               context.bsr);
-        printf("stack top: 0x%x%x%x\n", TOSU, TOSH, TOSL);
-
         printf("timer interrupt\n");
         set_timer_delay(ONE_SEC);
-        STATUS = context.status;
-        WREG = context.wreg;
-        BSR = context.bsr;
     }
+
+    if (context.rasp & 0x1F) {
+        asm("PUSH");
+        TOSL = *(sp - 3);
+        TOSH = *(sp - 2);
+        TOSU = *(sp - 1);
+    }
+    asm("PUSH");
+    TOSL = context.pcl;
+    TOSH = context.pch;
+    TOSU = context.pcu;
+
+    STATUS = context.status;
+    WREG = context.wreg;
+    BSR = context.bsr;
+
     asm("RETFIE");
 }
