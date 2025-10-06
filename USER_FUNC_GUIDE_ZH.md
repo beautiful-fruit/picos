@@ -26,7 +26,7 @@
 4. **返回地址管理**
 
    * 調整 `sp` 時，需為返回地址預留 3 個位元組。
-   * 在堆疊成長空間中，最前面的 3 個位元組存放返回地址。
+   * 在堆疊成長空間中，最後面的 3 個位元組存放返回地址。
    * 除非有特殊需求，請勿在函式內修改這個區域。
 
 5. **函式進入與退出**
@@ -50,23 +50,23 @@
 #define test_add(arg1, arg2, output) \
     do {                             \
         sp += 6;                     \
-        *(sp - (6 - 3)) = arg1;      \
-        *(sp - (6 - 4)) = arg2;      \
+        *(sp - 6) = arg1;            \
+        *(sp - 5) = arg2;            \
         asm("CALL _test_add_impl");  \
-        output = *(sp - (6 - 5));    \
+        output = *(sp - 4);          \
         sp -= 6;                     \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-#define ret (*(sp - (6 - 5)))
-#define arg1 (*(sp - (6 - 3)))
-#define arg2 (*(sp - (6 - 4)))
-    enter_user_func(6);
+#define ret (*(sp - 4))
+#define arg1 (*(sp - 6))
+#define arg2 (*(sp - 5))
+    enter_user_func();
     ret = arg1 + arg2;
 #undef ret
 #undef arg1
 #undef arg2
-    return_user_func(6);
+    return_user_func();
 }
 ```

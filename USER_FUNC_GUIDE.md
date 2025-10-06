@@ -27,7 +27,7 @@ To address this, we must **implement a custom stack** to store function local va
 4. **Return Address Management**
 
    * Reserve 3 bytes for the return address when adjusting `sp`.
-   * In the stack growth area, the first 3 bytes store the return address.
+   * In the stack growth area, the last 3 bytes store the return address.
    * Do not modify this area inside the function unless necessary.
 
 5. **Function Entry and Exit**
@@ -51,23 +51,23 @@ To address this, we must **implement a custom stack** to store function local va
 #define test_add(arg1, arg2, output) \
     do {                             \
         sp += 6;                     \
-        *(sp - (6 - 3)) = arg1;      \
-        *(sp - (6 - 4)) = arg2;      \
+        *(sp - 6) = arg1;            \
+        *(sp - 5) = arg2;            \
         asm("CALL _test_add_impl");  \
-        output = *(sp - (6 - 5));    \
+        output = *(sp - 4);          \
         sp -= 6;                     \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-#define ret (*(sp - (6 - 5)))
-#define arg1 (*(sp - (6 - 3)))
-#define arg2 (*(sp - (6 - 4)))
-    enter_user_func(6);
+#define ret (*(sp - 4))
+#define arg1 (*(sp - 6))
+#define arg2 (*(sp - 5))
+    enter_user_func();
     ret = arg1 + arg2;
 #undef ret
 #undef arg1
 #undef arg2
-    return_user_func(6);
+    return_user_func();
 }
 ```
