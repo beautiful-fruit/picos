@@ -23,7 +23,6 @@ To address this, we must **implement a custom stack** to store function local va
 3. **Preparation Before Calling**
 
    * Adjust the stack pointer (`sp`) to the appropriate location and push input parameters onto the stack.
-   * Use `timer_disable()` to disable timer interrupts.
 
 4. **Return Address Management**
 
@@ -42,7 +41,6 @@ To address this, we must **implement a custom stack** to store function local va
 
 7. **After Function Return**
 
-   * Use `timer_enable()` to re-enable timer interrupts.
    * If the function has a return value, retrieve it from the stack and store it in the designated return variable.
    * Release all stack space used during the function call.
 
@@ -55,23 +53,21 @@ To address this, we must **implement a custom stack** to store function local va
         sp += 6;                     \
         *(sp - (6 - 3)) = arg1;      \
         *(sp - (6 - 4)) = arg2;      \
-        timer_disable();             \
         asm("CALL _test_add_impl");  \
-        timer_enable();              \
         output = *(sp - (6 - 5));    \
         sp -= 6;                     \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-    #define ret (*(sp - (6 - 5)))
-    #define arg1 (*(sp - (6 - 3)))
-    #define arg2 (*(sp - (6 - 4)))
+#define ret (*(sp - (6 - 5)))
+#define arg1 (*(sp - (6 - 3)))
+#define arg2 (*(sp - (6 - 4)))
     enter_user_func(6);
     ret = arg1 + arg2;
-    #undef ret
-    #undef arg1
-    #undef arg2
+#undef ret
+#undef arg1
+#undef arg2
     return_user_func(6);
 }
 ```
