@@ -1,4 +1,5 @@
 #include <interrupt.h>
+#include <kernel.h>
 #include <type.h>
 
 inline void timer0_init(void)
@@ -31,9 +32,9 @@ void __attribute__((naked)) isr(void)
     context.rasp = STKPTR;
 
     if (STKPTR & 0x1F) {
-        context.ral = TOSL;
-        context.rah = TOSH;
-        context.rau = TOSU;
+        *(sp - 3) = TOSL;
+        *(sp - 2) = TOSH;
+        *(sp - 1) = TOSU;
         asm("POP");
     }
 
@@ -45,9 +46,9 @@ void __attribute__((naked)) isr(void)
 
     if (context.rasp & 0x1F) {
         asm("PUSH");
-        TOSL = context.ral;
-        TOSH = context.rah;
-        TOSU = context.rau;
+        TOSL = *(sp - 3);
+        TOSH = *(sp - 2);
+        TOSU = *(sp - 1);
     }
     asm("PUSH");
     TOSL = context.pcl;

@@ -3,11 +3,6 @@ typedef struct context {
     unsigned char wreg;
     unsigned char bsr;
 
-    // return address
-    unsigned char ral;
-    unsigned char rah;
-    unsigned char rau;
-
     // program counter
     unsigned char pcl;
     unsigned char pch;

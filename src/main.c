@@ -8,28 +8,30 @@ char *sp = NULL;
 #define test_add(arg1, arg2, output) \
     do {                             \
         sp += 6;                     \
-        *(sp - (6 - 3)) = arg1;      \
-        *(sp - (6 - 4)) = arg2;      \
+        *(sp - 6) = arg1;            \
+        *(sp - 5) = arg2;            \
         asm("CALL _test_add_impl");  \
-        output = *(sp - (6 - 5));    \
+        output = *(sp - 4);          \
         sp -= 6;                     \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-#define ret (*(sp - (6 - 5)))
-#define arg1 (*(sp - (6 - 3)))
-#define arg2 (*(sp - (6 - 4)))
-    enter_user_func(6);
+#define ret (*(sp - 4))
+#define arg1 (*(sp - 6))
+#define arg2 (*(sp - 5))
+    enter_user_func();
     ret = arg1 + arg2;
 #undef ret
 #undef arg1
 #undef arg2
-    return_user_func(6);
+    return_user_func();
 }
 
 void main(void)
 {
+    // Make the return address stack empty
+    STKPTR &= 0xE0;
     sp = ustack0;
     uart_init();
     INTCONbits.GIE = 1;
