@@ -3,7 +3,7 @@ BUILD = build
 SRC = src
 CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude
 
-SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c
+SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c
 OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
 INTERNAL_CLOCK ?= 0
@@ -27,9 +27,13 @@ $(BUILD)/isr.o: src/isr.s
 	@rm -f $*.d
 	@mv $(notdir $(basename $<)).o $@
 
+$(BUILD)/keep_funcs.o: src/keep_funcs.s
+	$(CC) -c src/keep_funcs.s $(CFLAGS)
+	@rm -f $*.d
+	@mv $(notdir $(basename $<)).o $@
 
-$(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o
-	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/main.elf $(BUILD)/isr.o
+$(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o $(BUILD)/keep_funcs.o
+	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/main.elf $(BUILD)/isr.o $(BUILD)/keep_funcs.o
 
 clean:
 	rm $(BUILD)/*

@@ -19,6 +19,8 @@ void uart_init(void)
     RCSTAbits.CREN = 1;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 inline void uart_putchar(char c)
 {
     while (!TXSTAbits.TRMT)

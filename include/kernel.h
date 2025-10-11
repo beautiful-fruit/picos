@@ -1,20 +1,25 @@
-extern char ustack0[256];
-extern char *sp;
+#include <type.h>
 
-#define enter_user_func() \
-    do {                  \
-        *(sp - 3) = TOSL; \
-        *(sp - 2) = TOSH; \
-        *(sp - 1) = TOSU; \
-        asm("POP");       \
+#define RUN_TASK_SIZE 4
+#define RUN_TASK_MASK 0xF
+extern Task *current;
+extern Task run_task[RUN_TASK_SIZE];
+extern unsigned char run_task_info;
+
+#define enter_user_func()          \
+    do {                           \
+        *(current->sp - 3) = TOSL; \
+        *(current->sp - 2) = TOSH; \
+        *(current->sp - 1) = TOSU; \
+        asm("POP");                \
     } while (0)
 
 
-#define return_user_func() \
-    do {                   \
-        asm("PUSH");       \
-        TOSL = *(sp - 3);  \
-        TOSH = *(sp - 2);  \
-        TOSU = *(sp - 1);  \
-        asm("RETURN");     \
+#define return_user_func()         \
+    do {                           \
+        asm("PUSH");               \
+        TOSL = *(current->sp - 3); \
+        TOSH = *(current->sp - 2); \
+        TOSU = *(current->sp - 1); \
+        asm("RETURN");             \
     } while (0)
