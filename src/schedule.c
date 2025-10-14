@@ -3,7 +3,6 @@
 #include <xc.h>
 
 Task run_task[RUN_TASK_SIZE];
-/* [round robin cnt 2 bits | run task use 4 bits] */
 unsigned char run_task_info = 0;
 
 Task *current = NULL;
@@ -29,7 +28,7 @@ signed char create_process(void (*func)(void))
 Task *schedule()
 {
     if (!(run_task_info & RUN_TASK_MASK))
-        return NULL;
+        PANIC("IDLE\n");
 
     char i = ((run_task_info >> 4) + 1) & 0x3;
     for (; !((1 << i) & run_task_info); i = (i + 1) & 0x3)

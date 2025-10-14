@@ -4,7 +4,11 @@
 #define RUN_TASK_MASK 0xF
 extern Task *current;
 extern Task run_task[RUN_TASK_SIZE];
+
+/* [Nop 1 bit | exit 1 bit | round robin cnt 2 bits | run task use 4 bits] */
 extern unsigned char run_task_info;
+
+#define RUN_TASK_EXIT 0x40
 
 #define enter_user_func()          \
     do {                           \

@@ -28,24 +28,24 @@ void __attribute__((naked)) test_add_impl(void)
 
 void __attribute__((naked)) task1(void)
 {
-    while (1) {
-        timer_disable();
-        uart_putchar('1');
-        uart_putchar('\r');
-        uart_putchar('\n');
-        timer_enable();
-    }
+    timer_disable();
+    uart_putchar('1');
+    uart_putchar('\r');
+    uart_putchar('\n');
+    timer_enable();
+
+    exit();
 }
 
 void __attribute__((naked)) task2(void)
 {
-    while (1) {
-        timer_disable();
-        uart_putchar('2');
-        uart_putchar('\r');
-        uart_putchar('\n');
-        timer_enable();
-    }
+    timer_disable();
+    uart_putchar('2');
+    uart_putchar('\r');
+    uart_putchar('\n');
+    timer_enable();
+
+    exit();
 }
 
 void main(void)
