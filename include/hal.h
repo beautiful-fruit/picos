@@ -18,3 +18,14 @@ void uart_init(void);
 inline void uart_putchar(char c);
 
 inline char uart_getchar(void);
+
+void extern_memory_init(void);
+
+
+/**
+ * NOTICE: extern memory read/write have to be called with interrupt turned
+ * off.
+ */
+void extern_memory_read(uint16_t block_addr, char *dest);
+
+void extern_memory_write(uint16_t block_addr, char *src);

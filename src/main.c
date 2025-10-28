@@ -34,6 +34,7 @@ void main(void)
     STKPTR &= 0xE0;
     sp = ustack0;
     uart_init();
+    extern_memory_init();
     INTCONbits.GIE = 1;
     timer0_init();
     set_timer_delay(ONE_SEC);
