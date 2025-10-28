@@ -20,8 +20,14 @@
    * 必須使用 `naked` 屬性，並且輸入與回傳型別都為 `void`。
 
 3. **呼叫前的準備**
-
-   * 調整 `sp`（stack pointer）至適當位置，將參數放入堆疊。
+   1. 放置參數與回傳值區
+      - 在變更 `sp` 前，先將所有參數與回傳值暫存區寫入堆疊。
+      ```c
+      *(current->sp) = arg1;
+      *(current->sp + 1) = arg2;
+      *(current->sp + 2) = 0; // optional: reserve space for return value
+      ```
+   2. 調整 `sp` 到適當的值
 
 4. **返回地址管理**
 
@@ -39,9 +45,8 @@
    * 可使用 `#define` 與 `#undef` 來整理與增加程式可讀性。
 
 7. **函式返回後的處理**
-
-   * 若函式有回傳值，將其從堆疊取出，存入負責存放回傳值的變數。
-   * 歸還所有使用的堆疊空間。
+   * 若有回傳值，從堆疊對應位置讀出並存入指定變數
+   * 最後釋放堆疊空間（`sp` 恢復原值）
 
 ---
 
@@ -49,19 +54,19 @@
 ```c
 #define test_add(arg1, arg2, output) \
     do {                             \
-        sp += 6;                     \
-        *(sp - 6) = arg1;            \
-        *(sp - 5) = arg2;            \
+        *(current->sp) = arg1;   \
+        *(current->sp + 1) = arg2;   \
+        current->sp += 6;            \
         asm("CALL _test_add_impl");  \
-        output = *(sp - 4);          \
-        sp -= 6;                     \
+        current->sp -= 6;            \
+        output = *(current->sp + 2); \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-#define ret (*(sp - 4))
-#define arg1 (*(sp - 6))
-#define arg2 (*(sp - 5))
+#define ret (*(current->sp - 4))
+#define arg1 (*(current->sp - 6))
+#define arg2 (*(current->sp - 5))
     enter_user_func();
     ret = arg1 + arg2;
 #undef ret

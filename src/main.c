@@ -5,12 +5,12 @@
 
 #define test_add(arg1, arg2, output) \
     do {                             \
+        *(current->sp) = arg1;       \
+        *(current->sp + 1) = arg2;   \
         current->sp += 6;            \
-        *(current->sp - 6) = arg1;   \
-        *(current->sp - 5) = arg2;   \
         asm("CALL _test_add_impl");  \
-        output = *(current->sp - 4); \
         current->sp -= 6;            \
+        output = *(current->sp + 2); \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
@@ -28,12 +28,21 @@ void __attribute__((naked)) test_add_impl(void)
 
 void __attribute__((naked)) task1(void)
 {
-    timer_disable();
-    uart_putchar('1');
-    uart_putchar('\r');
-    uart_putchar('\n');
-    timer_enable();
+    current->sp += 2;
+#define result (*(current->sp - 2))
+#define i (*(current->sp - 1))
 
+    for (; i < 5; i++) {
+        test_add(i, i, result);
+        timer_disable();
+        uart_putchar(':');
+        uart_putchar(result + '0');
+        uart_putchar('\r');
+        uart_putchar('\n');
+        timer_enable();
+    }
+
+#undef result
     exit();
 }
 
