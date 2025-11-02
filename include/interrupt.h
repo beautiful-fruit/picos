@@ -17,3 +17,7 @@
 inline void timer0_init(void);
 
 void __attribute__((naked)) isr(void);
+
+#define lock() timer_disable()
+
+#define unlock() timer_enable()

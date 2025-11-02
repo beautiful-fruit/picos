@@ -28,32 +28,43 @@ void __attribute__((naked)) test_add_impl(void)
 
 void __attribute__((naked)) task1(void)
 {
-    current->sp += 2;
-#define result (*(current->sp - 2))
-#define i (*(current->sp - 1))
-
-    for (; i < 5; i++) {
-        test_add(i, i, result);
-        timer_disable();
-        uart_putchar(':');
-        uart_putchar(result + '0');
-        uart_putchar('\r');
-        uart_putchar('\n');
-        timer_enable();
-    }
-
-#undef result
+    lock();
+    uart_putchar('?');
+    uart_putchar('1');
+    uart_putchar('\r');
+    uart_putchar('\n');
+    unlock();
     exit();
 }
 
 void __attribute__((naked)) task2(void)
 {
-    timer_disable();
+    lock();
+    uart_putchar(':');
     uart_putchar('2');
     uart_putchar('\r');
     uart_putchar('\n');
-    timer_enable();
+    unlock();
+    current->sp += 2;
+#define result (*(current->sp - 2))
+#define i (*(current->sp - 1))
 
+    for (i = 0; i < 255; i++) {
+        while (1) {
+            lock();
+            result = create_process(&task1);
+            unlock();
+            if (result)
+                break;
+        }
+    }
+    lock();
+    uart_putchar('>');
+    uart_putchar('\r');
+    uart_putchar('\n');
+    unlock();
+#undef result
+#undef i
     exit();
 }
 
@@ -65,11 +76,7 @@ void main(void)
     INTCONbits.GIE = 1;
     timer0_init();
 
-    create_process(&task1);
     create_process(&task2);
-    create_process(&task1);
-    create_process(&task2);
-
     start_schedule();
     PANIC("hello\n");
 }

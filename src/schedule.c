@@ -7,10 +7,21 @@ unsigned char run_task_info = 0;
 
 Task *current = NULL;
 
-signed char create_process(void (*func)(void))
+func_t wait_queue[WAIT_QUEUE_SIZE];
+unsigned char wait_in = 0;
+unsigned char wait_out = 0;
+
+char create_process(func_t func)
 {
-    if ((run_task_info & RUN_TASK_MASK) == RUN_TASK_MASK)
-        return -1;
+    if ((run_task_info & RUN_TASK_MASK) == RUN_TASK_MASK) {
+        if (!wait_queue_full()) {
+            wait_queue_in(func);
+            return 1;
+        }
+        return 0;
+    }
+
+    // this need compare and switch, so lock needed
     char i = 0;
     for (; (1 << i) & run_task_info; i++)
         ;
@@ -21,7 +32,7 @@ signed char create_process(void (*func)(void))
 
     run_task[i].context.rasp = 0;
 
-    return 0;
+    return 1;
 }
 
 

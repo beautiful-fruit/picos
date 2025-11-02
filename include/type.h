@@ -37,3 +37,5 @@ typedef struct task {
     char stack[USTACK_SIZE];
     Context context;
 } Task;
+
+typedef void (*func_t)(void);

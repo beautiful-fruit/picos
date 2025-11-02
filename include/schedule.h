@@ -6,9 +6,9 @@
  * create_process - create a new process
  * @func: The function that the process will execute
  *
- * Return 0 if success, return -1 if fail.
+ * Return 1 if success, return 0 if fail.
  */
-signed char create_process(void (*func)(void));
+char create_process(void (*func)(void));
 
 Task *schedule();
 
@@ -19,5 +19,5 @@ Task *schedule();
         run_task_info |= RUN_TASK_EXIT; \
         start_schedule();               \
         \   
-                                                                                                                    \
+                                                                                                                                                \
     } while (0)

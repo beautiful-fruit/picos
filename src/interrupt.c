@@ -56,7 +56,15 @@ void __attribute__((naked)) isr(void)
         asm("PICOS_START_SCHEDULE:\n");
         if (run_task_info & RUN_TASK_EXIT) {
             char i = (run_task_info >> 4) & 0x3;
-            run_task_info ^= (1 << i) | RUN_TASK_EXIT;
+            if (wait_queue_empty())
+                run_task_info ^= (1 << i) | RUN_TASK_EXIT;
+            else {
+                func_t func;
+                wait_queue_out(func);
+                run_task[i].sp = run_task[i].stack;
+                run_task[i].context.pc.value = (__uint24) func;
+                run_task[i].context.rasp = 0;
+            }
         }
         INTCONbits.TMR0IF = 0;
         current = schedule();
