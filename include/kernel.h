@@ -12,7 +12,7 @@ extern unsigned char wait_in;
 extern unsigned char wait_out;
 
 /* [Nop 1 bit | exit 1 bit | round robin cnt 2 bits | run task use 4 bits] */
-extern unsigned char run_task_info;
+extern volatile unsigned char run_task_info;
 
 #define RUN_TASK_EXIT 0x40
 

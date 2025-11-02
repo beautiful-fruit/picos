@@ -3,7 +3,7 @@
 #include <xc.h>
 
 Task run_task[RUN_TASK_SIZE];
-unsigned char run_task_info = 0;
+volatile unsigned char run_task_info = 0;
 
 Task *current = NULL;
 

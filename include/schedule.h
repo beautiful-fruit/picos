@@ -17,7 +17,7 @@ Task *schedule();
 #define exit()                          \
     do {                                \
         run_task_info |= RUN_TASK_EXIT; \
-        start_schedule();               \
-        \   
-                                                                                                                                                \
+        set_timer_delay(1);             \
+        while (1)                       \
+            ;                           \
     } while (0)
