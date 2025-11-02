@@ -21,9 +21,14 @@ To address this, we must **implement a custom stack** to store function local va
    * Both input and return types must be `void`.
 
 3. **Preparation Before Calling**
-
-   * Adjust the stack pointer (`sp`) to the appropriate location and push input parameters onto the stack.
-
+   1. Place Parameters and Return Value Area
+      * Before modifying `sp`, store all input parameters and reserve space for the return value on the stack.
+      ```c
+      *(current->sp) = arg1;
+      *(current->sp + 1) = arg2;
+      *(current->sp + 2) = 0; // optional: reserve space for return value
+      ```
+   2. Adjust `sp` to the Appropriate Value
 4. **Return Address Management**
 
    * Reserve 3 bytes for the return address when adjusting `sp`.
@@ -41,28 +46,28 @@ To address this, we must **implement a custom stack** to store function local va
 
 7. **After Function Return**
 
-   * If the function has a return value, retrieve it from the stack and store it in the designated return variable.
-   * Release all stack space used during the function call.
+   * If the function has a return value, read it from the stack and store it into the designated variable.
 
+   * Finally, release the used stack space (restore `sp` to its original value).
 ---
 
 ## example
 ```c
 #define test_add(arg1, arg2, output) \
     do {                             \
-        sp += 6;                     \
-        *(sp - 6) = arg1;            \
-        *(sp - 5) = arg2;            \
+        *(current->sp) = arg1;   \
+        *(current->sp + 1) = arg2;   \
+        current->sp += 6;            \
         asm("CALL _test_add_impl");  \
-        output = *(sp - 4);          \
-        sp -= 6;                     \
+        current->sp -= 6;            \
+        output = *(current->sp + 2); \
     } while (0)
 
 void __attribute__((naked)) test_add_impl(void)
 {
-#define ret (*(sp - 4))
-#define arg1 (*(sp - 6))
-#define arg2 (*(sp - 5))
+#define ret (*(current->sp - 4))
+#define arg1 (*(current->sp - 6))
+#define arg2 (*(current->sp - 5))
     enter_user_func();
     ret = arg1 + arg2;
 #undef ret
