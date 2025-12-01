@@ -70,7 +70,7 @@ void __attribute__((naked)) isr(void)
             else {
                 func_t func;
                 wait_queue_out(func);
-                run_task[i].sp = run_task[i].stack;
+                run_task[i].sp = run_stack[i];
                 run_task[i].context.pc.value = (__uint24) func;
                 run_task[i].context.rasp = 0;
             }

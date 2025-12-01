@@ -94,6 +94,9 @@ void main(void)
     INTCONbits.INT0IE = 1;
 
     timer0_init();
+
+    init_scheduler();
+
     create_process(&task3);
     create_process(&task2);
     start_schedule();

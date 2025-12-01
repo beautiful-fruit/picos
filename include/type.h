@@ -37,8 +37,7 @@ typedef struct context {
 #define USTACK_SIZE 256
 
 typedef struct task {
-    char *sp;
-    char stack[USTACK_SIZE];
+    uint8_t *sp;
     Context context;
 } Task;
 

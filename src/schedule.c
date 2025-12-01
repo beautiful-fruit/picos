@@ -4,6 +4,11 @@
 #include <xc.h>
 
 Task run_task[RUN_TASK_SIZE];
+
+Task idle_task;
+
+uint8_t run_stack[4][USTACK_SIZE];
+
 volatile unsigned char run_task_info = 0;
 volatile uint8_t wait_task_info = 0;
 
@@ -38,7 +43,7 @@ char create_process(func_t func)
         ;
 
     run_task_info |= (1 << i);
-    run_task[i].sp = run_task[i].stack;
+    run_task[i].sp = run_stack[i];
     run_task[i].context.pc.value = (__uint24) func;
 
     run_task[i].context.rasp = 0;
@@ -46,11 +51,23 @@ char create_process(func_t func)
     return 1;
 }
 
+void __attribute__((naked)) idle_func(void)
+{
+    while (1)
+        asm("SLEEP");
+}
+
+void init_scheduler()
+{
+    idle_task.context.pc.value = (__uint24) idle_func;
+    idle_task.context.rasp = 0;
+}
+
 
 Task *schedule()
 {
-    if (!(run_task_info & RUN_TASK_MASK))
-        PANIC("IDLE\n");
+    if (!((run_task_info ^ wait_task_info) & RUN_TASK_MASK))
+        return &idle_task;
 
     char i = ((run_task_info >> 4) + 1) & 0x3;
     for (; !((1 << i) & (run_task_info ^ wait_task_info)); i = (i + 1) & 0x3)

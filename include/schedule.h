@@ -12,6 +12,8 @@ char create_process(void (*func)(void));
 
 Task *schedule();
 
+void init_scheduler();
+
 #define start_schedule() asm("GOTO PICOS_START_SCHEDULE\n")
 
 #define exit()                          \

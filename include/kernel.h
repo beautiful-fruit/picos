@@ -4,6 +4,7 @@
 #define RUN_TASK_MASK 0xF
 extern Task *current;
 extern Task run_task[RUN_TASK_SIZE];
+extern uint8_t run_stack[4][USTACK_SIZE];
 
 #define WAIT_QUEUE_SIZE 16
 #define WAIT_QUEUE_MOD 0xF
