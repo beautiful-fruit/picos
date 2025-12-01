@@ -73,7 +73,18 @@ void __attribute__((naked)) task3(void)
     while (1) {
         int_wait_queue_push(0);
         lock();
-        uart_putchar('0');
+        uart_putchar('3');
+        unlock();
+    }
+    exit();
+}
+
+void __attribute__((naked)) task4(void)
+{
+    while (1) {
+        int_wait_queue_push(0);
+        lock();
+        uart_putchar('4');
         unlock();
     }
     exit();
@@ -98,6 +109,7 @@ void main(void)
     init_scheduler();
 
     create_process(&task3);
+    create_process(&task4);
     create_process(&task2);
     start_schedule();
     PANIC("hello\n");

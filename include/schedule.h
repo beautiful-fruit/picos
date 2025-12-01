@@ -53,10 +53,11 @@ extern wait_cnt_t int2_cnt;
             ;                                                              \
     } while (0)
 
-#define int_wait_queue_pop(int_num)                                     \
-    if (int##int_num##_cnt.cnt) {                                       \
-        int##int_num##_cnt.cnt--;                                       \
-        wait_task_info ^= 1 << ((0x3 << (int##int_num##_cnt.out * 2)) & \
-                                int##int_num##_queue);                  \
-        int##int_num##_cnt.out = (int##int_num##_cnt.out + 1) & 0x3;    \
+#define int_wait_queue_pop(int_num)                                        \
+    if (int##int_num##_cnt.cnt) {                                          \
+        int##int_num##_cnt.cnt--;                                          \
+        wait_task_info ^=                                                  \
+            1 << ((int##int_num##_queue >> (int##int_num##_cnt.out * 2)) & \
+                  0x3);                                                    \
+        int##int_num##_cnt.out = (int##int_num##_cnt.out + 1) & 0x3;       \
     }
