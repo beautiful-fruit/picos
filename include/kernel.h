@@ -4,6 +4,7 @@
 #define RUN_TASK_MASK 0xF
 extern Task *current;
 extern Task run_task[RUN_TASK_SIZE];
+extern uint8_t run_stack[4][USTACK_SIZE];
 
 #define WAIT_QUEUE_SIZE 16
 #define WAIT_QUEUE_MOD 0xF
@@ -13,6 +14,9 @@ extern unsigned char wait_out;
 
 /* [Nop 1 bit | exit 1 bit | round robin cnt 2 bits | run task use 4 bits] */
 extern volatile unsigned char run_task_info;
+
+/* [Nop 4 bit | wait task use 4 bits] */
+extern volatile uint8_t wait_task_info;
 
 #define RUN_TASK_EXIT 0x40
 

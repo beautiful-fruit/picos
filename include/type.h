@@ -1,6 +1,10 @@
 #pragma once
 #include <xc.h>
 
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long uint32_t;
+
 union int24_part {
     __uint24 value;
     struct {
@@ -33,8 +37,7 @@ typedef struct context {
 #define USTACK_SIZE 256
 
 typedef struct task {
-    char *sp;
-    char stack[USTACK_SIZE];
+    uint8_t *sp;
     Context context;
 } Task;
 

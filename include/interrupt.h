@@ -18,6 +18,6 @@ inline void timer0_init(void);
 
 void __attribute__((naked)) isr(void);
 
-#define lock() timer_disable()
+#define lock() INTCONbits.GIE = 0
 
-#define unlock() timer_enable()
+#define unlock() INTCONbits.GIE = 1
