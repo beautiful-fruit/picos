@@ -21,3 +21,40 @@ Task *schedule();
         while (1)                       \
             ;                           \
     } while (0)
+
+typedef union {
+    struct {
+        unsigned in : 2;
+        unsigned out : 2;
+        unsigned cnt : 4;
+    };
+} wait_cnt_t;
+
+extern uint8_t int0_queue;
+extern wait_cnt_t int0_cnt;
+
+extern uint8_t int1_queue;
+extern wait_cnt_t int1_cnt;
+
+extern uint8_t int2_queue;
+extern wait_cnt_t int2_cnt;
+
+#define int_wait_queue_push(int_num)                                       \
+    do {                                                                   \
+        int##int_num##_queue |=                                            \
+            (((run_task_info >> 4) & 0x3) << (int##int_num##_cnt.in * 2)); \
+        int##int_num##_cnt.in = (int##int_num##_cnt.in + 1) & 0x3;         \
+        int##int_num##_cnt.cnt++;                                          \
+        wait_task_info |= (1 << ((run_task_info >> 4) & 0x3));             \
+        set_timer_delay(1);                                                \
+        while (wait_task_info & (1 << ((run_task_info >> 4) & 0x3)))       \
+            ;                                                              \
+    } while (0)
+
+#define int_wait_queue_pop(int_num)                                     \
+    if (int##int_num##_cnt.cnt) {                                       \
+        int##int_num##_cnt.cnt--;                                       \
+        wait_task_info ^= 1 << ((0x3 << (int##int_num##_cnt.out * 2)) & \
+                                int##int_num##_queue);                  \
+        int##int_num##_cnt.out = (int##int_num##_cnt.out + 1) & 0x3;    \
+    }

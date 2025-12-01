@@ -68,6 +68,17 @@ void __attribute__((naked)) task2(void)
     exit();
 }
 
+void __attribute__((naked)) task3(void)
+{
+    while (1) {
+        int_wait_queue_push(0);
+        lock();
+        uart_putchar('0');
+        unlock();
+    }
+    exit();
+}
+
 void main(void)
 {
     // Make the return address stack empty
@@ -75,8 +86,15 @@ void main(void)
     uart_init();
     extern_memory_init();
     INTCONbits.GIE = 1;
-    timer0_init();
 
+    ADCON1 = 0xF;
+    PORTB = 0;
+    TRISB = 1;
+    INTCONbits.INT0IF = 0;
+    INTCONbits.INT0IE = 1;
+
+    timer0_init();
+    create_process(&task3);
     create_process(&task2);
     start_schedule();
     PANIC("hello\n");

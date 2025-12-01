@@ -1,15 +1,26 @@
 #include <kernel.h>
 #include <libc.h>
+#include <schedule.h>
 #include <xc.h>
 
 Task run_task[RUN_TASK_SIZE];
 volatile unsigned char run_task_info = 0;
+volatile uint8_t wait_task_info = 0;
 
 Task *current = NULL;
 
 func_t wait_queue[WAIT_QUEUE_SIZE];
 unsigned char wait_in = 0;
 unsigned char wait_out = 0;
+
+uint8_t int0_queue = 0;
+wait_cnt_t int0_cnt = {0};
+
+uint8_t int1_queue = 0;
+wait_cnt_t int1_cnt = {0};
+
+uint8_t int2_queue = 0;
+wait_cnt_t int2_cnt = {0};
 
 char create_process(func_t func)
 {
@@ -42,7 +53,7 @@ Task *schedule()
         PANIC("IDLE\n");
 
     char i = ((run_task_info >> 4) + 1) & 0x3;
-    for (; !((1 << i) & run_task_info); i = (i + 1) & 0x3)
+    for (; !((1 << i) & (run_task_info ^ wait_task_info)); i = (i + 1) & 0x3)
         ;
 
     run_task_info &= RUN_TASK_MASK;

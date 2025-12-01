@@ -52,7 +52,16 @@ void __attribute__((naked)) isr(void)
     }
 
     /* trap handler start */
-    if (INTCONbits.TMR0IF) {
+    if (INTCONbits.INT0IF) {
+        int_wait_queue_pop(0);
+        INTCONbits.INT0IF = 0;
+    } else if (INTCON3bits.INT1IF) {
+        int_wait_queue_pop(1);
+        INTCON3bits.INT1IF = 0;
+    } else if (INTCON3bits.INT2IF) {
+        int_wait_queue_pop(2);
+        INTCON3bits.INT2IF = 0;
+    } else if (INTCONbits.TMR0IF) {
         asm("PICOS_START_SCHEDULE:\n");
         if (run_task_info & RUN_TASK_EXIT) {
             char i = (run_task_info >> 4) & 0x3;
