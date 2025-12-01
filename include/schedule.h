@@ -43,11 +43,13 @@ extern wait_cnt_t int2_cnt;
 
 #define int_wait_queue_push(int_num)                                       \
     do {                                                                   \
+        lock();                                                            \
         int##int_num##_queue |=                                            \
             (((run_task_info >> 4) & 0x3) << (int##int_num##_cnt.in * 2)); \
         int##int_num##_cnt.in = (int##int_num##_cnt.in + 1) & 0x3;         \
         int##int_num##_cnt.cnt++;                                          \
         wait_task_info |= (1 << ((run_task_info >> 4) & 0x3));             \
+        unlock();                                                          \
         set_timer_delay(1);                                                \
         while (wait_task_info & (1 << ((run_task_info >> 4) & 0x3)))       \
             ;                                                              \
