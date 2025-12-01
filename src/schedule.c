@@ -54,7 +54,7 @@ char create_process(func_t func)
 void __attribute__((naked)) idle_func(void)
 {
     while (1)
-        asm("SLEEP");
+        ;
 }
 
 void init_scheduler()
