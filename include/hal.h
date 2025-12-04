@@ -1,4 +1,14 @@
+#pragma once
+#ifdef __XC8
 #include <xc.h>
+#else
+#include <stdint.h>
+#include "dfp/xc8/pic/include/proc/pic18f4520.h"
+#define bit unsigned char
+#define bool unsigned char
+#define NULL 0
+#endif
+
 
 #pragma config OSC = HS
 #pragma config WDT = OFF
