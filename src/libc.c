@@ -4,11 +4,19 @@ void putchar(char c)
 {
     if (c == '\n')
         uart_putchar('\r');
+    if (c == '\b') {
+        uart_putchar('\b');
+        uart_putchar(' ');
+    }
     uart_putchar(c);
 }
 
 static void print_uint(unsigned int x)
 {
+    if (x == 0) {
+        putchar('0');
+        return;
+    }
     char tmp[10];
     int i = 0;
     tmp[0] = '0';
