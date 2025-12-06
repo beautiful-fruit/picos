@@ -1,3 +1,4 @@
+#include <ch375.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <schedule.h>
@@ -54,6 +55,7 @@ void __attribute__((naked)) isr(void)
     /* trap handler start */
     if (INTCONbits.INT0IF) {
         int_wait_queue_pop(0);
+        usb_handler();
         INTCONbits.INT0IF = 0;
     } else if (INTCON3bits.INT1IF) {
         int_wait_queue_pop(1);

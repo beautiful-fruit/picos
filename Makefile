@@ -3,7 +3,8 @@ BUILD = build
 SRC = src
 CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude
 
-SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c
+SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c src/ch375.c \
+		src/tests.c
 OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
 INTERNAL_CLOCK ?= 0

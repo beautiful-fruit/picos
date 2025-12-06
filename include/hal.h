@@ -8,6 +8,7 @@
 #define bool unsigned char
 #define NULL 0
 #endif
+#include <interrupt.h>
 
 
 #pragma config OSC = HS

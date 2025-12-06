@@ -51,6 +51,8 @@ void extern_memory_init(void)
      * |  0  |  1  |     x     |
      * |  1  |  1  | start R/W |
      * -------------------------
+     *
+     * 00 is the initial state
      */
     asm("BCF TRISA, 0\n"
         "BCF TRISA, 1\n"
@@ -60,14 +62,17 @@ void extern_memory_init(void)
         "BSF LATA, 1\n"
         "BCF LATA, 2\n"
         "BSF LATA, 3\n"
-        "CLRF TRISD\n");
+        "CLRF TRISD\n"
+        "SETF LATD\n"
+        "BCF LATA, 3\n");
 }
 
 void extern_memory_write(uint16_t block_addr, char *src)
 {
+    lock();
     FSR0L = ((uint16_t) src) & 0xFF;
     FSR0H = (((uint16_t) src) >> 8) & 0xFF;
-
+    asm("BSF LATA, 3\n");
     LATD = block_addr >> 8;
     asm("BCF LATA, 3\n"
         "NOP\n");
@@ -141,14 +146,19 @@ void extern_memory_write(uint16_t block_addr, char *src)
         "MOVFF POSTINC0, LATD\n"
         "MOVFF POSTINC0, LATD\n"
         "BSF LATA, 0\n"
-        "BCF LATA, 2\n");
+        "BCF LATA, 2\n"
+        "SETF LATD\n"
+        "BCF LATA, 3\n");
+    unlock();
 }
 
 void extern_memory_read(uint16_t block_addr, char *dest)
 {
+    lock();
     FSR0L = ((uint16_t) dest) & 0xFF;
     FSR0H = (((uint16_t) dest) >> 8) & 0xFF;
 
+    asm("BSF LATA, 3\n");
     LATD = block_addr >> 8;
     asm("BCF LATA, 3\n"
         "NOP\n");
@@ -226,5 +236,8 @@ void extern_memory_read(uint16_t block_addr, char *dest)
         "MOVFF PORTD, POSTINC0\n"
         "BSF LATA, 1\n"
         "BCF LATA, 2\n"
-        "CLRF TRISD\n");
+        "CLRF TRISD\n"
+        "SETF LATD\n"
+        "BCF LATA, 3\n");
+    unlock();
 }
