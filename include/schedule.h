@@ -5,10 +5,15 @@
 /**
  * create_process - create a new process
  * @func: The function that the process will execute
+ * @stack_size: indicates that the stack size is 128 multiplied by stack_size
  *
  * Return 1 if success, return 0 if fail.
  */
-char create_process(void (*func)(void));
+char create_process(void (*func)(void), uint8_t stack_size);
+
+uint8_t stack_alloc(uint8_t stack_size);
+
+void stack_release(uint8_t pid);
 
 Task *schedule();
 

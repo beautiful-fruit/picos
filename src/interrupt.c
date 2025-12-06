@@ -65,14 +65,38 @@ void __attribute__((naked)) isr(void)
         asm("PICOS_START_SCHEDULE:\n");
         if (run_task_info & RUN_TASK_EXIT) {
             char i = (run_task_info >> 4) & 0x3;
-            if (wait_queue_empty())
+            stack_release(i);
+            if (stack_status.wait_pid != 4) {
+                run_task[stack_status.wait_pid].stack_info.stack_start =
+                    stack_alloc(
+                        run_task[stack_status.wait_pid].stack_info.stack_size);
+
+                if (run_task[stack_status.wait_pid].stack_info.stack_start !=
+                    4) {
+                    stack_status.wait_pid = 4;
+                    run_task[stack_status.wait_pid].sp =
+                        run_stack[run_task[stack_status.wait_pid]
+                                      .stack_info.stack_start];
+                }
+            }
+            if (wait_queue_empty() || stack_status.wait_pid != 4)
                 run_task_info ^= (1 << i) | RUN_TASK_EXIT;
             else {
-                func_t func;
-                wait_queue_out(func);
-                run_task[i].sp = run_stack[i];
-                run_task[i].context.pc.value = (__uint24) func;
+                wait_node_t wait_node;
+                wait_queue_out(wait_node);
+                run_task[i].context.pc.value = (__uint24) wait_node.func;
                 run_task[i].context.rasp = 0;
+
+                run_task[i].stack_info.stack_size = wait_node.stack_size;
+                run_task[i].stack_info.stack_start =
+                    stack_alloc(wait_node.stack_size);
+
+                if (wait_node.stack_size != 0 &&
+                    run_task[i].stack_info.stack_start == 4)
+                    stack_status.wait_pid = i;
+                else
+                    run_task[i].sp =
+                        run_stack[run_task[i].stack_info.stack_start];
             }
         }
         INTCONbits.TMR0IF = 0;

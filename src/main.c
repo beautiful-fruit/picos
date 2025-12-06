@@ -29,8 +29,11 @@ void __attribute__((naked)) test_add_impl(void)
 void __attribute__((naked)) task1(void)
 {
     lock();
-    uart_putchar('?');
-    uart_putchar('1');
+    uart_putchar('0' + ((run_task_info >> 4) & 0x3));
+    uart_putchar(':');
+    unlock();
+    lock();
+    uart_putchar('x');
     uart_putchar('\r');
     uart_putchar('\n');
     unlock();
@@ -40,31 +43,14 @@ void __attribute__((naked)) task1(void)
 void __attribute__((naked)) task2(void)
 {
     lock();
+    uart_putchar('0' + ((run_task_info >> 4) & 0x3));
     uart_putchar(':');
+    unlock();
+    lock();
     uart_putchar('2');
     uart_putchar('\r');
     uart_putchar('\n');
     unlock();
-    current->sp += 2;
-#define result (*(current->sp - 2))
-#define i (*(current->sp - 1))
-
-    for (i = 0; i < 255; i++) {
-        while (1) {
-            lock();
-            result = create_process(&task1);
-            unlock();
-            if (result)
-                break;
-        }
-    }
-    lock();
-    uart_putchar('>');
-    uart_putchar('\r');
-    uart_putchar('\n');
-    unlock();
-#undef result
-#undef i
     exit();
 }
 
@@ -108,9 +94,17 @@ void main(void)
 
     init_scheduler();
 
-    create_process(&task3);
-    create_process(&task4);
-    create_process(&task2);
+    create_process(&task3, 10);  // this will fail to create process
+    create_process(&task1, 2);
+    create_process(&task2, 2);
+    create_process(&task1, 1);
+    create_process(&task1, 2);
+    create_process(&task2, 0);
+    create_process(&task2, 0);
+
+    create_process(&task3, 0);
+    create_process(&task4, 0);
+
     start_schedule();
     PANIC("hello\n");
 }
