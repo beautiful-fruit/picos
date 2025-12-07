@@ -1,7 +1,9 @@
+#include <ch375.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
+#include <tests.h>
 
 #define test_add(arg1, arg2, output) \
     do {                             \
@@ -82,13 +84,10 @@ void main(void)
     STKPTR &= 0xE0;
     uart_init();
     extern_memory_init();
+    ch375_init();
     INTCONbits.GIE = 1;
-
     ADCON1 = 0xF;
-    PORTB = 0;
-    TRISB = 1;
-    INTCONbits.INT0IF = 0;
-    INTCONbits.INT0IE = 1;
+
 
     timer0_init();
 

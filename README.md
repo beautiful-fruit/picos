@@ -2,7 +2,13 @@
 An operating system running on PIC18F4520 chip. It is not only an OS but a hardware-software co-design project featuring external memory access acceleration.
 
 ## Features
+- ⚙️ Preemptive Scheduler — A timer-interrupt–based scheduler
+- 🧩 2MB External SRAM — One-byte-per-instruction efficiency through custom circuit design
+- 🔌 USB Host (CH375B) - Full USB enumeration with support for HID keyboards
+- ⌨️ USB Keyboard Input — Real HID keyboard support with parsed USB reports]
+
 TBD...
+
 
 ## Build
 First, make sure you have the xc8 compiler.

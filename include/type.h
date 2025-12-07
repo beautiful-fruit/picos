@@ -1,5 +1,11 @@
 #pragma once
+#ifdef __XC8
 #include <xc.h>
+#else
+#include "dfp/xc8/pic/include/proc/pic18f4520.h"
+#define __uint24 uint32_t
+#endif
+
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

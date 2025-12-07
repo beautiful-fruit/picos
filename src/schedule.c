@@ -1,7 +1,6 @@
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
-#include <xc.h>
 
 Task run_task[RUN_TASK_SIZE];
 
