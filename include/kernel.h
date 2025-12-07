@@ -4,11 +4,14 @@
 #define RUN_TASK_MASK 0xF
 extern Task *current;
 extern Task run_task[RUN_TASK_SIZE];
-extern uint8_t run_stack[4][USTACK_SIZE];
+
+#define RUN_STACK_SIZE 4
+extern stack_status_t stack_status;
+extern uint8_t run_stack[RUN_STACK_SIZE][USTACK_SIZE];
 
 #define WAIT_QUEUE_SIZE 16
 #define WAIT_QUEUE_MOD 0xF
-extern func_t wait_queue[WAIT_QUEUE_SIZE];
+extern wait_node_t wait_queue[WAIT_QUEUE_SIZE];
 extern unsigned char wait_in;
 extern unsigned char wait_out;
 
@@ -42,10 +45,11 @@ extern volatile uint8_t wait_task_info;
 
 #define wait_queue_empty() (wait_out == wait_in)
 
-#define wait_queue_in(func)                       \
-    {                                             \
-        wait_queue[wait_in] = func;               \
-        wait_in = (wait_in + 1) & WAIT_QUEUE_MOD; \
+#define wait_queue_in(func, stack_size)              \
+    {                                                \
+        wait_queue[wait_in].func = func;             \
+        wait_queue[wait_in].stack_size = stack_size; \
+        wait_in = (wait_in + 1) & WAIT_QUEUE_MOD;    \
     }
 
 #define wait_queue_out(out)                         \

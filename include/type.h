@@ -40,11 +40,32 @@ typedef struct context {
     unsigned char eecon1;
 } Context;
 
-#define USTACK_SIZE 256
+#define USTACK_SIZE 128
 
 typedef struct task {
     uint8_t *sp;
     Context context;
+    union {
+        struct {
+            unsigned stack_start : 4;
+            // stack_size indicates that the stack size is 128 multiplied by
+            // stack_size
+            unsigned stack_size : 4;
+        };
+    } stack_info;
 } Task;
 
 typedef void (*func_t)(void);
+
+typedef struct {
+    func_t func;
+    uint8_t stack_size;
+} wait_node_t;
+
+typedef union {
+    struct {
+        unsigned nop : 1;
+        unsigned wait_pid : 3;
+        unsigned use : 4;
+    };
+} stack_status_t;
