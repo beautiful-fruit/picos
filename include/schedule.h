@@ -46,6 +46,11 @@ extern wait_cnt_t int1_cnt;
 extern uint8_t int2_queue;
 extern wait_cnt_t int2_cnt;
 
+extern uint8_t tx_wait;
+extern uint8_t rc_wait;
+
+#define get_pid() ((run_task_info >> 4) & 0x3)
+
 #define int_wait_queue_push(int_num)                                       \
     do {                                                                   \
         lock();                                                            \
