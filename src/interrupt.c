@@ -69,6 +69,12 @@ void __attribute__((naked)) isr(void)
             tx_wait = 0xFF;
         }
         PIE1bits.TXIE = 0;
+    } else if (PIR1bits.RCIF && PIE1bits.RCIE) {
+        if (rc_wait != 0xFF) {
+            wait_task_info ^= 1 << rc_wait;
+            rc_wait = 0xFF;
+        }
+        PIE1bits.RCIE = 0;
     } else if (INTCONbits.TMR0IF) {
         asm("PICOS_START_SCHEDULE:\n");
         if (run_task_info & RUN_TASK_EXIT) {
