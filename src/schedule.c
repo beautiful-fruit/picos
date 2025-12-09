@@ -27,6 +27,8 @@ wait_cnt_t int1_cnt = {0};
 uint8_t int2_queue = 0;
 wait_cnt_t int2_cnt = {0};
 
+uint8_t tx_wait = 0xFF;
+
 uint8_t stack_alloc(uint8_t stack_size)
 {
     if (stack_status.use == 0xF || stack_size == 0)

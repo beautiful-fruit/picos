@@ -23,9 +23,11 @@ void uart_init(void)
 #pragma interrupt_level 2
 inline void uart_putchar(char c)
 {
-    while (!TXSTAbits.TRMT)
+    while (!PIR1bits.TXIF)
         ;
     TXREG = c;
+    while (!PIR1bits.TXIF)
+        ;
 }
 
 inline char uart_getchar(void)

@@ -63,6 +63,12 @@ void __attribute__((naked)) isr(void)
     } else if (INTCON3bits.INT2IF) {
         int_wait_queue_pop(2);
         INTCON3bits.INT2IF = 0;
+    } else if (PIR1bits.TXIF && PIE1bits.TXIE) {
+        if (tx_wait != 0xFF) {
+            wait_task_info ^= 1 << tx_wait;
+            tx_wait = 0xFF;
+        }
+        PIE1bits.TXIE = 0;
     } else if (INTCONbits.TMR0IF) {
         asm("PICOS_START_SCHEDULE:\n");
         if (run_task_info & RUN_TASK_EXIT) {
