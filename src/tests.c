@@ -71,3 +71,49 @@ done:
         printf("success\n");
     }
 }
+
+
+void disk_test(void)
+{
+    printf("yee\n");
+    int fail = 0;
+    rand_seed = 0xdead;
+    for (uint32_t addr = 0; addr < (((uint32_t) 32) << 10); addr += 512) {
+        if ((addr & 0xFFFF) == 0)
+            printf("writing addr: 0x%lx\n", addr);
+        for (uint32_t i = addr; i < addr + 512; i += 64) {
+            for (int j = 0; j < 64; j++) {
+                a[j] = yee_rand();
+            }
+            extern_memory_write(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
+        }
+        if (disk_write(addr >> 9, addr & 0b1111111111111111111)) {
+            fail = 1;
+            printf("disk_write fail: addr = %lx\n", addr);
+            goto disk_test_done;
+        }
+    }
+
+    rand_seed = 0xdead;
+    for (uint32_t addr = 0; addr < (((uint32_t) 32) << 10); addr += 512) {
+        if ((addr & 0xFFFF) == 0)
+            printf("reading addr: 0x%lx\n", addr);
+        disk_read(addr >> 9, addr & 0b1111111111111111111);
+        for (uint32_t i = addr; i < addr + 512; i += 64) {
+            extern_memory_read(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
+            for (int j = 0; j < 64; j++) {
+                if (a[j] != yee_rand()) {
+                    printf("disk_read value fail: addr = %lx\n", i);
+                    fail = 1;
+                    goto disk_test_done;
+                }
+            }
+        }
+    }
+
+
+disk_test_done:
+    if (!fail) {
+        printf("success\n");
+    }
+}

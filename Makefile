@@ -4,7 +4,7 @@ SRC = src
 CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude
 
 SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c src/ch375.c \
-		src/tests.c src/usr_libc.c
+		src/tests.c src/debug.c src/dma.c src/usr_libc.c
 OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
 INTERNAL_CLOCK ?= 0
@@ -13,7 +13,10 @@ ifeq ($(INTERNAL_CLOCK),0)
     CFLAGS += -DEXTERNAL_CLOCK
 endif
 
-all: build $(BUILD)/main.elf
+all: build $(BUILD)/main.elf dma
+
+dma: dma_firmware
+	make -C dma_firmware
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -38,3 +41,4 @@ $(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o $(BUILD)/keep_funcs.o
 
 clean:
 	rm $(BUILD)/*
+	make -C dma_firmware clean
