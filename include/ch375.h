@@ -1,4 +1,5 @@
 #pragma once
+#include <debug.h>
 #include <libc.h>
 #include <usb.h>
 
@@ -34,8 +35,8 @@ inline uint8_t CH375_READ();
 inline void CH375_WRITE(uint8_t data);
 
 #define CH375_A0 LATA4
-#define CH375_WR LATA0
-#define CH375_RD LATA1
+#define CH375_WR LATC2
+#define CH375_RD LATC3
 #define CH375_CE LATC0
 
 
