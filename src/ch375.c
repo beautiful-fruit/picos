@@ -94,8 +94,9 @@ void usb_handler()
         }
         printf("[+] USB Device Connected\n");
 
+
         CH375_CMD(SET_USB_SPEED);
-        CH375_WRITE_DATA(USB_SPEED_LOW_SPEED);
+        CH375_WRITE_DATA(USB_SPEED_FULL_SPEED);
 
         CH375_CMD(GET_DESCR);
         CH375_WRITE_DATA(0x01);
@@ -103,8 +104,18 @@ void usb_handler()
 
         CH375_CMD(GET_STATUS);
         if (CH375_READ() != USB_INT_SUCCESS) {
-            printf("[!] Get Device Descriptor Fail\n");
-            return;
+            CH375_CMD(SET_USB_SPEED);
+            CH375_WRITE_DATA(USB_SPEED_LOW_SPEED);
+
+            CH375_CMD(GET_DESCR);
+            CH375_WRITE_DATA(0x01);
+            wait_for_interrupt();
+
+            CH375_CMD(GET_STATUS);
+            if (CH375_READ() != USB_INT_SUCCESS) {
+                printf("[!] Get Device Descriptor Fail\n");
+                return;
+            }
         }
         printf("[+] Got Device Descriptor\n");
 
@@ -260,6 +271,8 @@ void ch375_gpio_init(void)
     ADCON1 = 0b1111;
     TRISA = 0;
     TRISD = 0xFF;
+    TRISC2 = 0;
+    TRISC3 = 0;
     CH375_WR = 1;
     CH375_RD = 1;
     TRISC0 = 0;

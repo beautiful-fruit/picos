@@ -1,4 +1,5 @@
 #include <ch375.h>
+#include <dma.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <libc.h>
@@ -81,14 +82,16 @@ void __attribute__((naked)) task4(void)
 void main(void)
 {
     // Make the return address stack empty
+    GIE = 0;
     STKPTR &= 0xE0;
     uart_init();
+    dma_init();
     extern_memory_init();
     ch375_init();
-    INTCONbits.GIE = 1;
+    __delay_ms(3000);
+
+
     ADCON1 = 0xF;
-
-
     timer0_init();
 
     init_scheduler();

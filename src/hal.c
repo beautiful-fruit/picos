@@ -60,6 +60,8 @@ void extern_memory_init(void)
         "BCF TRISA, 1\n"
         "BCF TRISA, 2\n"
         "BCF TRISA, 3\n"
+        "BCF TRISC, 1\n"
+        "BCF LATC, 1\n"
         "BSF LATA, 0\n"
         "BSF LATA, 1\n"
         "BCF LATA, 2\n"
@@ -71,7 +73,6 @@ void extern_memory_init(void)
 
 void extern_memory_write(uint16_t block_addr, char *src)
 {
-    lock();
     FSR0L = ((uint16_t) src) & 0xFF;
     FSR0H = (((uint16_t) src) >> 8) & 0xFF;
     asm("BSF LATA, 3\n");
@@ -151,12 +152,10 @@ void extern_memory_write(uint16_t block_addr, char *src)
         "BCF LATA, 2\n"
         "SETF LATD\n"
         "BCF LATA, 3\n");
-    unlock();
 }
 
 void extern_memory_read(uint16_t block_addr, char *dest)
 {
-    lock();
     FSR0L = ((uint16_t) dest) & 0xFF;
     FSR0H = (((uint16_t) dest) >> 8) & 0xFF;
 
@@ -241,5 +240,4 @@ void extern_memory_read(uint16_t block_addr, char *dest)
         "CLRF TRISD\n"
         "SETF LATD\n"
         "BCF LATA, 3\n");
-    unlock();
 }

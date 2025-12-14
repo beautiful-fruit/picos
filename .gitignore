@@ -58,3 +58,9 @@ build/*
 dfp/*
 .vscode/*
 *.atpack
+
+dma_firmware/.vscode/*
+dma_firmware/dfp/*
+dma_firmware/build/*
+dma_firmware/parse_config.py
+*.conf
