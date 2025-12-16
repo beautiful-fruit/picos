@@ -62,7 +62,35 @@ inline void CH375_WRITE(uint8_t data);
         __delay_us(100);         \
     } while (0)
 
+#define KB_INPUT_QUEUE_NUM 3
+extern char kb_input_queue[KB_INPUT_QUEUE_NUM];
 
+typedef union {
+    struct {
+        unsigned in : 3;
+        unsigned out : 3;
+        unsigned nop : 1;
+        unsigned int_flag : 1;  // for notice interrupt
+    };
+} kb_info_t;
+
+extern kb_info_t kb_info;
+
+#define kb_queue_in(c)                                      \
+    do {                                                    \
+        kb_input_queue[kb_info.in] = c;                     \
+        kb_info.in = (kb_info.in + 1) & KB_INPUT_QUEUE_NUM; \
+    } while (0)
+
+#define kb_queue_out(c)                                       \
+    do {                                                      \
+        c = kb_input_queue[kb_info.out];                      \
+        kb_info.out = (kb_info.out + 1) & KB_INPUT_QUEUE_NUM; \
+    } while (0)
+
+#define kb_queue_empty() (kb_info.in == kb_info.out)
+
+#define kb_queue_full() (kb_info.out == ((kb_info.in + 1) & KB_INPUT_QUEUE_NUM))
 
 void usb_handler();
 

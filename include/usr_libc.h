@@ -1,3 +1,4 @@
+#include <ch375.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <libc.h>
@@ -6,6 +7,7 @@
 
 extern spin_lock_t uart_put_lock;
 extern spin_lock_t uart_get_lock;
+extern spin_lock_t kb_get_lock;
 
 #define usr_uart_put_char(c)                                             \
     do {                                                                 \
@@ -39,4 +41,13 @@ extern spin_lock_t uart_get_lock;
         }                                                                \
         c = RCREG;                                                       \
         spin_unlock(uart_get_lock);                                      \
+    } while (0)
+
+#define usr_kb_get_char(c)          \
+    do {                            \
+        spin_lock(kb_get_lock);     \
+        if (kb_queue_empty())       \
+            int_wait_queue_push(0); \
+        kb_queue_out(c);            \
+        spin_unlock(kb_get_lock);   \
     } while (0)

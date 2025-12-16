@@ -54,8 +54,11 @@ void __attribute__((naked)) isr(void)
 
     /* trap handler start */
     if (INTCONbits.INT0IF) {
-        int_wait_queue_pop(0);
         usb_handler();
+        if (kb_info.int_flag) {
+            kb_info.int_flag = 0;
+            int_wait_queue_pop(0);
+        }
         INTCONbits.INT0IF = 0;
     } else if (INTCON3bits.INT1IF) {
         int_wait_queue_pop(1);

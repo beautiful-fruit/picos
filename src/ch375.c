@@ -73,6 +73,9 @@ uint8_t usb_flags = 0;
 uint8_t buf[8];
 uint8_t last_key;
 
+char kb_input_queue[KB_INPUT_QUEUE_NUM];
+kb_info_t kb_info = {0};
+
 void usb_handler()
 {
     if (!(usb_flags & USB_CONNECTED)) {
@@ -247,8 +250,12 @@ void usb_handler()
                 goto done;
             }
 
-            if (last_key != buf[2])
-                putchar(decode_hid_key(buf[0], buf[2]));
+            if (last_key != buf[2]) {
+                if (!kb_queue_full())
+                    kb_queue_in(decode_hid_key(buf[0], buf[2]));
+
+                kb_info.int_flag = 1;
+            }
 
             last_key = buf[2];
         }
