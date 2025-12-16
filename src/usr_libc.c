@@ -2,3 +2,4 @@
 
 spin_lock_t uart_put_lock = {0};
 spin_lock_t uart_get_lock = {0};
+spin_lock_t kb_get_lock = {0};
