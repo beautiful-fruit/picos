@@ -21,6 +21,13 @@ dma: dma_firmware
 $(BUILD):
 	mkdir -p $(BUILD)
 
+flash:
+	./parse_config.py $(BUILD)/main.hex pic18f4520.fuses.conf
+	./minipro -p 'PIC18F4520@DIP40' -i -E
+	./minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
+	./minipro -p 'PIC18F4520@DIP40' -i -e -w build/main.hex --format ihex
+
+
 $(BUILD)/%.p1: src/%.c
 	$(CC) -c $< $(CFLAGS)
 	@rm -f $*.d
