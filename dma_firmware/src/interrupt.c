@@ -25,13 +25,6 @@ void __interrupt() isr(void)
         }
         TRISD = 0xFF;
         DMA_BUS_OE = 0;
-        asm(
-            "NOP\n"
-            "NOP\n"
-            "NOP\n"
-            "NOP\n"
-            "NOP\n"
-        );
         *ptr++ = PORTD;
         DMA_BUS_OE = 1;
         TRISD = 0x00;
@@ -65,7 +58,6 @@ int1_done:
             DMA_BUS_OE = 1;
             DMA_BUS_DIR = 1;
             start = 1;
-            printf("start\n");
         }
         INT2IF = 0;
     }

@@ -36,13 +36,11 @@ void main(void)
         } else {
             status = disk_read(req.sector, req.block_addr);
         }
-        if (status < 0) {
+        if (status < 0)
             output_data = DMA_FLAG_FAIL;
-            printf("fail\n");
-        } else {
+        else
             output_data = DMA_FLAG_SUCCESS;
-            printf("success\n");
-        }
+
         mode = -1;
         start = 0;
         GIE = 1;
