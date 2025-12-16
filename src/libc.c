@@ -51,7 +51,8 @@ void printf(const char *fmt, ...)
             break;
         }
         case 'c':
-            putchar(*fmt);
+            char c = va_arg(vargs, char);
+            putchar(c);
             break;
         case 'd': {
             int x = va_arg(vargs, int);

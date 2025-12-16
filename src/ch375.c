@@ -39,31 +39,136 @@ static void wait_for_interrupt()
 }
 
 /**
- * This **strange** declaration is because of the strange behavior of XC8
- * compiler's.
- */
-char a[] = "1234567890";
-char b[] = "!@#$%^&*()";
-char c[] = "\n\x00\b\x00 -=[]\\\x00;'`,./";
-char d[] = "\n\x00\x00\x00 _+{}|\x00:\"~<>?";
-char *key_arr1[2] = {a, b};
-char *key_arr2[2] = {c, d};
-
-/**
  * TODO: Support more keys according to the Chapter 0x7 of the HID Usage Tables
  * https://usb.org/sites/default/files/hut1_4.pdf
+ *
+ * Implement decode without lookup arrays: return character per keycode
+ * using explicit conditionals so the compiler doesn't rely on pointer data.
  */
-static inline char decode_hid_key(uint8_t modifier, uint8_t keycode)
+static char decode_hid_key(uint8_t modifier, uint8_t keycode)
 {
     uint8_t shift = !!(modifier & 0x22);
+
     if (keycode >= 0x04 && keycode <= 0x1D)
         return (shift ? 'A' : 'a') + (keycode - 0x04);
 
-    if (keycode >= 0x1E && keycode <= 0x27)
-        return key_arr1[shift][keycode - 0x1E];
+    if (keycode == 0x2C)
+        return ' ';
 
-    if (keycode >= 0x28 && keycode <= 0x38)
-        return key_arr2[shift][keycode - 0x28];
+    if (keycode >= 0x1E && keycode <= 0x27) {
+        if (shift) {
+            switch (keycode) {
+            case 0x1E:
+                return '!';
+            case 0x1F:
+                return '@';
+            case 0x20:
+                return '#';
+            case 0x21:
+                return '$';
+            case 0x22:
+                return '%';
+            case 0x23:
+                return '^';
+            case 0x24:
+                return '&';
+            case 0x25:
+                return '*';
+            case 0x26:
+                return '(';
+            case 0x27:
+                return ')';
+            }
+        } else {
+            switch (keycode) {
+            case 0x1E:
+                return '1';
+            case 0x1F:
+                return '2';
+            case 0x20:
+                return '3';
+            case 0x21:
+                return '4';
+            case 0x22:
+                return '5';
+            case 0x23:
+                return '6';
+            case 0x24:
+                return '7';
+            case 0x25:
+                return '8';
+            case 0x26:
+                return '9';
+            case 0x27:
+                return '0';
+            }
+        }
+    }
+
+    if (keycode >= 0x28 && keycode <= 0x38) {
+        if (shift) {
+            switch (keycode) {
+            case 0x28:
+                return '\n';
+            case 0x2C:
+                return ' ';
+            case 0x2D:
+                return '_';
+            case 0x2E:
+                return '+';
+            case 0x2F:
+                return '{';
+            case 0x30:
+                return '}';
+            case 0x31:
+                return '|';
+            case 0x33:
+                return ':';
+            case 0x34:
+                return '"';
+            case 0x35:
+                return '~';
+            case 0x36:
+                return '<';
+            case 0x37:
+                return '>';
+            case 0x38:
+                return '?';
+            }
+        } else {
+            switch (keycode) {
+            case 0x28:
+                return '\n';
+            case 0x2A:
+                return '\b';
+            case 0x2C:
+                return ' ';
+            case 0x2D:
+                return '-';
+            case 0x2E:
+                return '=';
+            case 0x2F:
+                return '[';
+            case 0x30:
+                return ']';
+            case 0x31:
+                return '\\';
+            case 0x33:
+                return ';';
+            case 0x34:
+                return '\'';
+            case 0x35:
+                return '`';
+            case 0x36:
+                return ',';
+            case 0x37:
+                return '.';
+            case 0x38:
+                return '/';
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -249,8 +354,11 @@ void usb_handler()
             }
 
             if (last_key != buf[2]) {
-                if (!kb_queue_full())
+                if (!kb_queue_full()) {
+                    // printf("key: %x, %x, %c\n", buf[0], buf[2],
+                    // decode_hid_key(buf[0], buf[2]));
                     kb_queue_in(decode_hid_key(buf[0], buf[2]));
+                }
 
                 kb_info.int_flag = 1;
             }
