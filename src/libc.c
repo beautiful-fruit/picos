@@ -1,5 +1,7 @@
 #include <libc.h>
 
+uint8_t alloc_cache[64];
+
 void putchar(char c)
 {
     if (c == '\n')

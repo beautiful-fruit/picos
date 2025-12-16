@@ -10,6 +10,7 @@
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
+typedef unsigned long addr_t;
 
 union int24_part {
     __uint24 value;

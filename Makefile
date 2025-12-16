@@ -46,6 +46,18 @@ $(BUILD)/keep_funcs.o: src/keep_funcs.s
 $(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o $(BUILD)/keep_funcs.o
 	$(CC) $(CFLAGS) $(OBJS) -o $(BUILD)/main.elf $(BUILD)/isr.o $(BUILD)/keep_funcs.o
 
+flash:
+	./parse_config.py $(BUILD)/main.hex pic18f4520.fuses.conf
+	minipro -p 'PIC18F4520@DIP40' -i -E
+	minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
+	minipro -p 'PIC18F4520@DIP40' -i -e -w build/main.hex --format ihex
+
+flash-dma:
+	./parse_config.py dma_firmware/$(BUILD)/main.hex pic18f4520.fuses.conf
+	minipro -p 'PIC18F4520@DIP40' -i -E
+	minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
+	minipro -p 'PIC18F4520@DIP40' -i -e -w dma_firmware/$(BUILD)/main.hex --format ihex
+
 clean:
 	rm $(BUILD)/*
 	make -C dma_firmware clean
