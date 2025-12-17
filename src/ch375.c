@@ -1,10 +1,5 @@
 #include <ch375.h>
 
-struct usb_device_descriptor device_descriptor;
-struct usb_config_descriptor config_descriptor;
-struct usb_interface_descriptor interface_descriptor;
-struct usb_hid_descriptor hid_descriptor;
-struct usb_endpoint_descriptor endpoint_descriptor;
 
 inline void CH375_WRITE(uint8_t data)
 {
@@ -70,11 +65,13 @@ static inline char decode_hid_key(uint8_t modifier, uint8_t keycode)
 #define USB_CONNECTED (1U << 0)
 #define USB_TOGGLE (1U << 1)
 uint8_t usb_flags = 0;
-uint8_t buf[8];
+uint8_t buf[9];
 uint8_t last_key;
 
 char kb_input_queue[KB_INPUT_QUEUE_NUM];
 kb_info_t kb_info = {0};
+
+uint8_t bEndpointAddress;
 
 void usb_handler()
 {
@@ -124,14 +121,9 @@ void usb_handler()
 
         CH375_CMD(RD_USB_DATA);
         uint8_t len = CH375_READ();
-        if (len == 18) {
-            uint8_t *ptr = (uint8_t *) &device_descriptor;
+        if (len == 18)
             for (uint8_t i = 0; i < len; i++)
-                *ptr++ = CH375_READ();
-        }
-#ifdef DEBUG
-        print_device_descriptor(&device_descriptor);
-#endif
+                CH375_READ();
 
         CH375_CMD(SET_ADDRESS);
         CH375_WRITE_DATA(0x02);
@@ -162,45 +154,42 @@ void usb_handler()
         len = CH375_READ();
         if (len < 9)
             return;
-        uint8_t *ptr = (uint8_t *) &config_descriptor;
+
         for (uint8_t i = 0; i < 9; i++)
-            *ptr++ = CH375_READ();
+            buf[i] = CH375_READ();
         len -= 9;
-#ifdef DEBUG
-        print_config_descriptor(&config_descriptor);
-#endif
+
+        uint8_t bConfigurationValue =
+            ((struct usb_config_descriptor *) buf)->bConfigurationValue;
+
 
         if (len < 9)
             return;
-        ptr = (uint8_t *) &interface_descriptor;
+
         for (uint8_t i = 0; i < 9; i++)
-            *ptr++ = CH375_READ();
+            CH375_READ();
         len -= 9;
-#ifdef DEBUG
-        print_interface_descriptor(&interface_descriptor);
-#endif
 
         if (len < 9)
             return;
-        ptr = (uint8_t *) &hid_descriptor;
+
         for (uint8_t i = 0; i < 9; i++)
-            *ptr++ = CH375_READ();
+            CH375_READ();
         len -= 9;
-#ifdef DEBUG
-        print_interface_descriptor(&interface_descriptor);
-#endif
+
 
         if (len < 7)
             return;
-        ptr = (uint8_t *) &endpoint_descriptor;
+
         for (uint8_t i = 0; i < 7; i++)
-            *ptr++ = CH375_READ();
+            buf[i] = CH375_READ();
         len -= 7;
-#ifdef DEBUG
-        print_endpoint_descriptor(&endpoint_descriptor);
-#endif
+        bEndpointAddress =
+            ((struct usb_endpoint_descriptor *) buf)->bEndpointAddress & 0xF;
+
+
         CH375_CMD(SET_CONFIG);
-        CH375_WRITE_DATA(config_descriptor.bConfigurationValue);
+        CH375_WRITE_DATA(bConfigurationValue);
 
         wait_for_interrupt();
         CH375_CMD(GET_STATUS);
@@ -222,9 +211,9 @@ void usb_handler()
         else
             CH375_WRITE_DATA(0x80);
         usb_flags ^= USB_TOGGLE;
-        uint8_t addr = endpoint_descriptor.bEndpointAddress & 0xF;
+
         CH375_CMD(ISSUE_TOKEN);
-        CH375_WRITE_DATA((uint8_t) (addr << 4) | DEF_USB_PID_IN);
+        CH375_WRITE_DATA((uint8_t) (bEndpointAddress << 4) | DEF_USB_PID_IN);
         last_key = 0;
     } else {
         CH375_CMD(GET_STATUS);
@@ -267,9 +256,8 @@ void usb_handler()
             CH375_WRITE_DATA(0x80);
         usb_flags ^= USB_TOGGLE;
 
-        uint8_t addr = endpoint_descriptor.bEndpointAddress & 0xF;
         CH375_CMD(ISSUE_TOKEN);
-        CH375_WRITE_DATA((uint8_t) (addr << 4) | DEF_USB_PID_IN);
+        CH375_WRITE_DATA((uint8_t) (bEndpointAddress << 4) | DEF_USB_PID_IN);
     }
 }
 

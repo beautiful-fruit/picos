@@ -51,7 +51,8 @@ void printf(const char *fmt, ...)
             break;
         }
         case 'c':
-            putchar(*fmt);
+            char c = va_arg(vargs, char);
+            putchar(c);
             break;
         case 'd': {
             int x = va_arg(vargs, int);
@@ -86,4 +87,17 @@ void printf(const char *fmt, ...)
     }
 DONE:
     va_end(vargs);
+}
+
+int memcmp(const char *x, const char *y, uint16_t size)
+{
+    for (uint16_t i = 0; i < size; i++) {
+        if (*x < *y)
+            return -1;
+        else if (*x > *y)
+            return 1;
+        x++;
+        y++;
+    }
+    return 0;
 }
