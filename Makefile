@@ -1,7 +1,7 @@
 CC = /opt/microchip/xc8/v3.10/bin/xc8-cc
 BUILD = build
 SRC = src
-CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude
+CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude -O2
 
 SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c src/ch375.c \
 		src/debug.c src/dma.c src/usr_libc.c

@@ -4,8 +4,9 @@
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
-#include <tests.h>
+#include <fat32.h>
 #include <usr_libc.h>
+#include <tests.h>
 
 #define test_add(arg1, arg2, output) \
     do {                             \
@@ -429,9 +430,7 @@ void main(void)
     GIE = 0;
     STKPTR &= 0xE0;
     uart_init();
-
     dma_init();
-
     extern_memory_init();
     ch375_init();
     __delay_ms(3000);
