@@ -42,7 +42,6 @@ fat32_t *create_fat32()
 
     extern_memory_read((sec_buf + (512 - 64)) >> 6, picos_cache);
     uint16_t boot_sec_sig = *((uint16_t *) (picos_cache + 62));
-
     extern_memory_read(sec_buf >> 6, picos_cache);
     uint32_t fat_sz32 = *((uint32_t *) (picos_cache + 36));
 
@@ -149,7 +148,6 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
                     now->next = new_block;
 
                     extern_memory_write(now_addr >> 6, (char *) now);
-
                     last_blk = now_addr;
                     now_addr = new_block;
                     now->entry_offset = entry_offset;

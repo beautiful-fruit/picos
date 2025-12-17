@@ -59,6 +59,7 @@ typedef struct __attribute__((packed)) {
     uint8_t name3[4];
 } fat32_long_name_t;
 
+
 #define LONGEST_NAME_SZ 11
 
 typedef struct {
