@@ -57,17 +57,34 @@ void __attribute__((naked)) fpstart(void)
     uint32_t n = fsstart_param;
     uint32_t result = 0;
 
-    for (uint32_t i = 2; i <= n; i++) {
-        for (uint32_t j = 2; j < i; j++) {
-            if (i % j == 0) {
-                result--;
-                break;
+    if (n == 0) {
+        result = 0;
+    } else if (n == 1) {
+        result = 1;
+    } else {
+        uint32_t a = 0;
+        uint32_t b = 1;
+        uint32_t c = 0;
+
+
+        for (uint32_t i = 2; i <= n; i++) {
+            lock();
+
+
+            uint32_t block_end = (i + 49 < n) ? i + 49 : n;
+            for (uint32_t j = i; j <= block_end; j++) {
+                c = (a + b) % MOD;
+                a = b;
+                b = c;
             }
+
+            unlock();
+
+            i = block_end;
         }
-        result++;
+        result = c;
     }
 
-    // 使用 spin_lock 保護共享變數
     spin_lock_t ll;
     spin_lock(ll);
     fsstart_ans = result;
@@ -80,7 +97,8 @@ void __attribute__((naked)) fpend(void)
 {
     uint32_t result;
 
-    // 使用 spin_lock 讀取結果
+
+
     spin_lock_t ll;
     spin_lock(ll);
     result = fsstart_ans;
@@ -88,8 +106,8 @@ void __attribute__((naked)) fpend(void)
 
     if (result == 0) {
         char *st =
-            "e\b\brror: no result available or calculation not finished\r\n";
-        for (uint8_t i = 0; i < 58; i++) {
+            "e\b\brror: no result available or calculation not finished\r\n$ ";
+        for (uint8_t i = 0; i < 60; i++) {
             putc(st[i]);
         }
     } else {
@@ -116,9 +134,11 @@ void __attribute__((naked)) fpend(void)
         }
         putc('\r');
         putc('\n');
+        putc('$');
+        putc(' ');
     }
 
-    // 使用 spin_lock 重置結果
+
     spin_lock_t ll2;
     spin_lock(ll2);
     fsstart_ans = 0;
@@ -266,14 +286,13 @@ void __attribute__((naked)) task4(void)
 
                 if (cmd_index >= 8 && cmd_buffer[7] == ' ') {
                     has_param = 1;
-                    // 讀取參數
+
                     uint8_t param_index = 8;
                     while (param_index < cmd_index) {
                         if (cmd_buffer[param_index] >= '0' &&
                             cmd_buffer[param_index] <= '9') {
                             ans = ans * 10 + (cmd_buffer[param_index] - '0');
                         } else {
-                            // 非法字符
                             has_param = 0;
                             break;
                         }
@@ -282,14 +301,12 @@ void __attribute__((naked)) task4(void)
                 }
 
                 if (has_param) {
-                    // 有參數，傳遞給 fsstart
                     spin_lock_t ll;
                     spin_lock(ll);
                     fsstart_param = ans;
                     create_process(&fpstart, 0);
                     spin_unlock(ll);
                 } else {
-                    // 沒有參數，顯示錯誤訊息
                     char *str =
                         "Error: fpstart requires a number parameter\r\n";
                     for (uint8_t i = 0; i < 44; i++) {
@@ -310,20 +327,18 @@ void __attribute__((naked)) task4(void)
 
             else if (cmd_buffer[0] == 'k' && cmd_buffer[1] == 'i' &&
                      cmd_buffer[2] == 'l' && cmd_buffer[3] == 'l') {
-                // 檢查是否有參數
                 uint8_t pid = 0;
                 uint8_t has_param = 0;
 
                 if (cmd_index >= 5 && cmd_buffer[4] == ' ') {
                     has_param = 1;
-                    // 讀取參數
+
                     uint8_t param_index = 5;
                     while (param_index < cmd_index) {
                         if (cmd_buffer[param_index] >= '0' &&
                             cmd_buffer[param_index] <= '9') {
                             pid = pid * 10 + (cmd_buffer[param_index] - '0');
                         } else {
-                            // 非法字符
                             has_param = 0;
                             break;
                         }
@@ -331,24 +346,18 @@ void __attribute__((naked)) task4(void)
                     }
                 }
 
-                if (has_param && pid < RUN_TASK_SIZE) {  // PID 範圍是 0-3
-                    // 檢查該 PID 是否存在
+                if (has_param && pid < RUN_TASK_SIZE) {
                     if (run_task_info & (1 << pid)) {
-                        // 標記該任務為退出狀態
                         spin_lock_t ll;
                         spin_lock(ll);
 
-                        // 設置退出標誌 - 注意：根據你的宏定義，RUN_TASK_EXIT 是
-                        // 0x40 需要左移對應的位數來標記特定任務
-                        // run_task_info |= RUN_TASK_EXIT;
 
-                        // 釋放該任務的堆疊資源
+
                         if (run_task[pid].stack_info.stack_size > 0) {
-                            // 使用 stack_release 函數釋放堆疊
                             stack_release(pid);
                         }
 
-                        // 清除任務佔用標誌
+
                         run_task_info &= (uint8_t) ~(1 << pid);
 
                         spin_unlock(ll);
