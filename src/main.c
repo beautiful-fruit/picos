@@ -258,8 +258,6 @@ void __attribute__((naked)) task4(void)
                     }
                 }
 
-
-
                 str = "\r\nStack use: ";
                 for (uint8_t i = 0; i < 14; i++) {
                     usr_uart_put_char(str[i]);
@@ -443,7 +441,6 @@ void main(void)
 
     create_process(&task4, 2);
     create_process(&task1, 0);
-
 
     start_schedule();
 
