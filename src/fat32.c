@@ -42,17 +42,8 @@ fat32_t *create_fat32()
 
     extern_memory_read((sec_buf + (512 - 64)) >> 6, picos_cache);
     uint16_t boot_sec_sig = *((uint16_t *) (picos_cache + 62));
-    printf("boot sec sig: %x\n", boot_sec_sig);
-
     extern_memory_read(sec_buf >> 6, picos_cache);
     uint32_t fat_sz32 = *((uint32_t *) (picos_cache + 36));
-    printf("fat sz32: %x\n", fat_sz32);
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            printf("%x ", picos_cache[i * 8 + j]);
-        }
-        printf("\n");
-    }
 
 
     if (boot_sec_sig != 0xAA55 || fat_sz32 == 0)
@@ -100,7 +91,6 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
 
     addr_t head = now_addr;
     addr_t last_blk;
-    printf("head: %lx\n", head);
     uint32_t entry_offset = 0;
 
     while (1) {
@@ -112,8 +102,6 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
                 extern_memory_read((dir_buf >> 6) + (j >> 1), picos_cache);
 
                 for (uint8_t k = 0; k < 2; k++, entry_offset++) {
-                    printf("now_addr: %lx\n", now_addr);
-                    printf("%s\n", dir_cache[k].short_name);
                     if (dir_cache[k].short_name[0] == 0x00)
                         goto ls_end;
                     if (dir_cache[k].short_name[0] == 0xE5)
@@ -126,18 +114,16 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
                         for (uint8_t name_idx = 0; name_idx < 10; name_idx++) {
                             if (is_valid_ascii(long_name->name1[name_idx])) {
                                 now->file.name[x] = long_name->name1[name_idx];
-                                printf("%c\n", now->file.name[x]);
                                 x++;
                             }
                         }
                         for (uint8_t name_idx = 0; name_idx < 12; name_idx++) {
                             if (is_valid_ascii(long_name->name2[name_idx])) {
                                 now->file.name[x] = long_name->name2[name_idx];
-                                printf("%c\n", now->file.name[x]);
                                 x++;
                             }
                         }
-                        now->file.name[x] = 0xFF;
+                        now->file.name[x] = 0;
 
 
                         if (block_entry_start == 65535)
@@ -159,12 +145,9 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
 
                     addr_t new_block;  // this is gerneral memory region
                     extern_alloc(1, new_block);
-                    printf("alloc: %lx\n", new_block);
                     now->next = new_block;
 
                     extern_memory_write(now_addr >> 6, (char *) now);
-
-                    // extern_memory_read(new_block >> 6, (char *)now);
                     last_blk = now_addr;
                     now_addr = new_block;
                     now->entry_offset = entry_offset;
@@ -234,13 +217,13 @@ void free_dir_block(addr_t dir)
 
 addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
 {
-    addr_t target = 0;
+    addr_t target = EXTERN_NULL;
     while (1) {
         if (dir == EXTERN_NULL)
             break;
         extern_memory_read(dir >> 6, dir_block_cache);
         int result = memcmp(((dir_block_t *) dir_block_cache)->file.name,
-                            file_name, name_size);
+                            file_name, min(name_size, 11));
         if (!result) {
             target = dir;
             goto find_file;
@@ -252,13 +235,12 @@ find_file:
     return target;
 }
 
-void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, size_t cnt)
+void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
 {
     if (file->file_size == 0)
         return;
     if ((cnt & 0x1ff) != 0)
         return;
-
     addr_t fat_extern_buf, tmp_extern_buf;
     disk_extern_alloc(BLOCK_SIZE >> 6, fat_extern_buf);
     disk_extern_alloc(BLOCK_SIZE >> 6, tmp_extern_buf);
@@ -268,30 +250,36 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, size_t cnt)
 
     while (clus < END_OF_CLUS) {
         uint32_t first_sec = get_clus_first_sec(fs, clus);
-        
-        for (uint8_t i = 0;i < fs->sec_per_clus;i++) {
+        for (uint8_t i = 0; i < fs->sec_per_clus; i++) {
             disk_read(first_sec + i, tmp_extern_buf);
-            for (uint16_t j = 0;j < BLOCK_SIZE;j += 64, read_extern_buf += 64) {
+            for (uint16_t j = 0; j < BLOCK_SIZE;
+                 j += 64, read_extern_buf += 64) {
                 extern_memory_read((tmp_extern_buf + j) >> 6, picos_cache);
                 extern_memory_write(read_extern_buf >> 6, picos_cache);
             }
             cnt -= BLOCK_SIZE;
-            if (cnt == 0) 
+            if (cnt == 0)
                 goto end_read;
         }
-        
-        if (((fs)->first_fat_sec + (clus * 4) / (fs)->byte_per_sec) != fat_sec) {
+
+        if (((fs)->first_fat_sec + (clus * 4) / (fs)->byte_per_sec) !=
+            fat_sec) {
             fat_sec = ((fs)->first_fat_sec + (clus * 4) / (fs)->byte_per_sec);
             disk_read(fat_sec, fat_extern_buf);
         }
 
-        extern_memory_read((fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64)) >> 6, picos_fat_cache); //maybe can reduce memory read
+        extern_memory_read((fat_extern_buf +
+                            ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64)) >>
+                               6,
+                           picos_fat_cache);  // maybe can reduce memory read
 
-        clus = *((uint32_t *)(picos_fat_cache + (((clus * 4) % (fs)->byte_per_sec) % 64))) & 0x0FFFFFFF;
-
+        clus = *((uint32_t *) (picos_fat_cache +
+                               (((clus * 4) % (fs)->byte_per_sec) % 64))) &
+               0x0FFFFFFF;
     }
 end_read:
     disk_extern_release(tmp_extern_buf);
     disk_extern_release(fat_extern_buf);
     return;
 }
+

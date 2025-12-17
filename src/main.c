@@ -434,6 +434,39 @@ void main(void)
     extern_memory_init();
     ch375_init();
     __delay_ms(3000);
+
+    fat32_t *fs = create_fat32();
+    addr_t root = load_dir(fs, fs->root_clus);
+
+    ls_dir((addr_t) root);
+
+    char target_name[] = "meow.txt";
+    addr_t target_addr = find_file(root, target_name, sizeof(target_name));
+
+    printf("%lx\n", target_addr);
+
+
+    if (target_addr != EXTERN_NULL) {
+        extern_memory_read(target_addr >> 6, (char *) picos_cache);
+        file_t *target = (file_t *) picos_cache;
+        printf("%s\n", target->name);
+        printf("%d\n", target->file_size);
+        addr_t target_buf;
+        extern_alloc(8, target_buf);
+        read_file(fs, target, target_buf, 512);
+        extern_memory_read(target_addr >> 6, (char *) picos_cache);
+        for (uint16_t i = 0; i < 512; i += 64) {
+            extern_memory_read((target_buf + i) >> 6, picos_cache);
+            for (uint16_t j = 0; j < 64; j++) {
+                putchar(picos_cache[j]);
+                if (i + j == target->file_size)
+                    goto end_cat;
+            }
+        }
+    end_cat:
+        printf("cat end\n");
+    }
+
     INTCONbits.GIE = 1;
 
     ADCON1 = 0xF;

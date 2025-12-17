@@ -104,3 +104,6 @@ extern uint8_t alloc_cache[64];
     } while (0)
 
 int memcmp(const char *x, const char *y, uint16_t size);
+
+
+#define min(a, b) ((a) <= (b) ? (a) : (b))
