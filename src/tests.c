@@ -87,7 +87,8 @@ void disk_test(void)
             }
             extern_memory_write(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
         }
-        if (disk_write(addr >> 9, (0x4000 << 6) | (addr & 0b1111111111111111111))) {
+        if (disk_write(addr >> 9,
+                       (0x4000 << 6) | (addr & 0b1111111111111111111))) {
             fail = 1;
             printf("disk_write fail: addr = %lx\n", addr);
             goto disk_test_done;

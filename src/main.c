@@ -1,12 +1,12 @@
 #include <ch375.h>
 #include <dma.h>
+#include <fat32.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
-#include <fat32.h>
-#include <usr_libc.h>
 #include <tests.h>
+#include <usr_libc.h>
 
 #define test_add(arg1, arg2, output) \
     do {                             \
@@ -36,6 +36,8 @@ void __attribute__((naked)) test_add_impl(void)
 uint32_t fsstart_param = 0;
 uint32_t fsstart_ans = 0;
 
+fat32_t *fs;
+addr_t root;
 
 void __attribute__((naked)) task1(void)
 {
@@ -404,6 +406,45 @@ void __attribute__((naked)) task4(void)
                         input_method = 1;
                 } else
                     input_method = 0;
+            } else if (cmd_index == 2 && cmd_buffer[0] == 'l' &&
+                       cmd_buffer[1] == 's') {
+                GIE = 0;
+                ls_dir((addr_t) root);
+                GIE = 1;
+            } else if (cmd_index >= 3 && cmd_buffer[0] == 'c' &&
+                       cmd_buffer[1] == 'a' && cmd_buffer[2] == 't') {
+                uint8_t idx = 3;
+
+                while (idx < cmd_index && cmd_buffer[idx] == ' ')
+                    idx++;
+                if (idx == cmd_index) {
+                    const char msg[] = "Usage: cat [file]\r\n";
+                    for (uint8_t i = 0; i < 19; i++) {
+                        usr_uart_put_char(msg[i]);
+                    }
+                    continue;
+                }
+                GIE = 0;
+                addr_t target_addr =
+                    find_file(root, &cmd_buffer[idx], cmd_index - idx);
+                if (target_addr != EXTERN_NULL) {
+                    extern_memory_read(target_addr >> 6, (char *) picos_cache);
+                    file_t *target = (file_t *) picos_cache;
+                    addr_t target_buf;
+                    extern_alloc(8, target_buf);
+                    read_file(fs, target, target_buf, 512);
+                    extern_memory_read(target_addr >> 6, (char *) picos_cache);
+                    for (uint16_t i = 0; i < 512; i += 64) {
+                        extern_memory_read((target_buf + i) >> 6, picos_cache);
+                        for (uint16_t j = 0; j < 64; j++) {
+                            putchar(picos_cache[j]);
+                            if (i + j == target->file_size)
+                                goto end_cat;
+                        }
+                    }
+                end_cat:
+                }
+                GIE = 1;
             } else {
                 usr_uart_put_char('?');
                 usr_uart_put_char(' ');
@@ -435,37 +476,8 @@ void main(void)
     ch375_init();
     __delay_ms(3000);
 
-    fat32_t *fs = create_fat32();
-    addr_t root = load_dir(fs, fs->root_clus);
-
-    ls_dir((addr_t) root);
-
-    char target_name[] = "meow.txt";
-    addr_t target_addr = find_file(root, target_name, sizeof(target_name));
-
-    printf("%lx\n", target_addr);
-
-
-    if (target_addr != EXTERN_NULL) {
-        extern_memory_read(target_addr >> 6, (char *) picos_cache);
-        file_t *target = (file_t *) picos_cache;
-        printf("%s\n", target->name);
-        printf("%d\n", target->file_size);
-        addr_t target_buf;
-        extern_alloc(8, target_buf);
-        read_file(fs, target, target_buf, 512);
-        extern_memory_read(target_addr >> 6, (char *) picos_cache);
-        for (uint16_t i = 0; i < 512; i += 64) {
-            extern_memory_read((target_buf + i) >> 6, picos_cache);
-            for (uint16_t j = 0; j < 64; j++) {
-                putchar(picos_cache[j]);
-                if (i + j == target->file_size)
-                    goto end_cat;
-            }
-        }
-    end_cat:
-        printf("cat end\n");
-    }
+    fs = create_fat32();
+    root = load_dir(fs, fs->root_clus);
 
     INTCONbits.GIE = 1;
 
@@ -475,7 +487,6 @@ void main(void)
     init_scheduler();
 
     create_process(&task4, 2);
-    create_process(&task1, 0);
 
 
     start_schedule();

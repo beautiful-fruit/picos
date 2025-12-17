@@ -282,4 +282,3 @@ end_read:
     disk_extern_release(fat_extern_buf);
     return;
 }
-
