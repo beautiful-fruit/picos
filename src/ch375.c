@@ -67,8 +67,6 @@ static inline char decode_hid_key(uint8_t modifier, uint8_t keycode)
     return 0;
 }
 
-#define USB_CONNECTED (1U << 0)
-#define USB_TOGGLE (1U << 1)
 uint8_t usb_flags = 0;
 uint8_t buf[8];
 uint8_t last_key;

@@ -47,11 +47,6 @@ void __attribute__((naked)) task2(void) {}
 
 void __attribute__((naked)) task3(void) {}
 
-void __attribute__((naked)) putc(char c)
-{
-    usr_uart_put_char(c);
-}
-
 void __attribute__((naked)) fpstart(void)
 {
     uint32_t n = fsstart_param;
@@ -108,19 +103,19 @@ void __attribute__((naked)) fpend(void)
         char *st =
             "e\b\brror: no result available or calculation not finished\r\n$ ";
         for (uint8_t i = 0; i < 60; i++) {
-            putc(st[i]);
+            usr_uart_put_char(st[i]);
         }
     } else {
         char *st2 = "r\b\besult: ";
         for (uint8_t i = 0; i < 11; i++) {
-            putc(st2[i]);
+            usr_uart_put_char(st2[i]);
         }
 
         static char num_str[16];
         uint8_t num_len = 0;
 
         if (result == 0) {
-            putc('0');
+            usr_uart_put_char('0');
         } else {
             uint32_t temp = result;
             while (temp > 0) {
@@ -129,13 +124,13 @@ void __attribute__((naked)) fpend(void)
             }
 
             for (int8_t i = num_len - 1; i >= 0; i--) {
-                putc(num_str[i]);
+                usr_uart_put_char(num_str[i]);
             }
         }
-        putc('\r');
-        putc('\n');
-        putc('$');
-        putc(' ');
+        usr_uart_put_char('\r');
+        usr_uart_put_char('\n');
+        usr_uart_put_char('$');
+        usr_uart_put_char(' ');
     }
 
 
@@ -147,28 +142,30 @@ void __attribute__((naked)) fpend(void)
     exit();
 }
 
+uint8_t input_method = 0; // 0 : uart, 1 : keyboard
+
 void __attribute__((naked)) task4(void)
 {
     static char cmd_buffer[32];
     static uint8_t cmd_index = 0;
 
     while (1) {
-        lock();
-
-
-        putc('$');
-        putc(' ');
+        usr_uart_put_char('$');
+        usr_uart_put_char(' ');
 
 
         cmd_index = 0;
         while (1) {
             char ch;
-            usr_uart_get_char(ch);
+            if (input_method == 0)
+                ch = usr_uart_get_char();
+            else
+                usr_kb_get_char(ch);
 
 
             if (ch == '\r' || ch == '\n') {
-                putc('\r');
-                putc('\n');
+                usr_uart_put_char('\r');
+                usr_uart_put_char('\n');
                 cmd_buffer[cmd_index] = '\0';
                 break;
             }
@@ -176,14 +173,14 @@ void __attribute__((naked)) task4(void)
             else if (ch == '\b' || ch == 0x7F) {
                 if (cmd_index > 0) {
                     cmd_index--;
-                    putc('\b');
-                    putc(' ');
-                    putc('\b');
+                    usr_uart_put_char('\b');
+                    usr_uart_put_char(' ');
+                    usr_uart_put_char('\b');
                 }
             }
 
             else if (ch >= 32 && ch <= 126 && cmd_index < 31) {
-                putc(ch);
+                usr_uart_put_char(ch);
                 cmd_buffer[cmd_index++] = ch;
             }
         }
@@ -195,16 +192,16 @@ void __attribute__((naked)) task4(void)
                 cmd_buffer[3] == 'o') {
                 if (cmd_index > 4 && cmd_buffer[4] == ' ') {
                     for (uint8_t i = 5; i < cmd_index; i++) {
-                        putc(cmd_buffer[i]);
+                        usr_uart_put_char(cmd_buffer[i]);
                     }
-                    putc('\r');
-                    putc('\n');
+                    usr_uart_put_char('\r');
+                    usr_uart_put_char('\n');
                 }
 
                 else if (cmd_index == 4) {
                     char *str = "Usage: echo <text>\r\n";
                     for (uint8_t i = 0; i < 20; i++) {
-                        putc(str[i]);
+                        usr_uart_put_char(str[i]);
                     }
                 }
             }
@@ -213,66 +210,66 @@ void __attribute__((naked)) task4(void)
                      cmd_buffer[1] == 's') {
                 char *str = "PID State Stack\r\n------------------\r\n";
                 for (uint8_t i = 0; i < 38; i++) {
-                    putc(str[i]);
+                    usr_uart_put_char(str[i]);
                 }
 
                 for (uint8_t i = 0; i < 4; i++) {
                     if (run_task_info & (1 << i)) {
-                        putc('0' + i);
-                        putc(' ');
-                        putc(' ');
+                        usr_uart_put_char('0' + i);
+                        usr_uart_put_char(' ');
+                        usr_uart_put_char(' ');
 
 
                         if ((run_task_info >> 4) & 0x3 == i) {
-                            putc('R');  // Running
+                            usr_uart_put_char('R');  // Running
                         } else if (wait_task_info & (1 << i)) {
-                            putc('W');  // Waiting
+                            usr_uart_put_char('W');  // Waiting
                         } else {
-                            putc('S');  // Sleeping/Ready
+                            usr_uart_put_char('S');  // Sleeping/Ready
                         }
 
 
                         if (run_task_info & RUN_TASK_EXIT) {
-                            putc('X');
+                            usr_uart_put_char('X');
                         } else {
-                            putc(' ');
+                            usr_uart_put_char(' ');
                         }
 
-                        putc(' ');
-                        putc(' ');
+                        usr_uart_put_char(' ');
+                        usr_uart_put_char(' ');
 
 
                         if (run_task[i].stack_info.stack_size > 0) {
-                            putc('0' + run_task[i].stack_info.stack_start);
-                            putc('-');
-                            putc('0' + (run_task[i].stack_info.stack_start +
+                            usr_uart_put_char('0' + run_task[i].stack_info.stack_start);
+                            usr_uart_put_char('-');
+                            usr_uart_put_char('0' + (run_task[i].stack_info.stack_start +
                                         run_task[i].stack_info.stack_size - 1));
                         } else {
-                            putc('N');
-                            putc('/');
-                            putc('A');
+                            usr_uart_put_char('N');
+                            usr_uart_put_char('/');
+                            usr_uart_put_char('A');
                         }
 
-                        putc('\r');
-                        putc('\n');
+                        usr_uart_put_char('\r');
+                        usr_uart_put_char('\n');
                     }
                 }
 
 
                 str = "\r\nStack use: ";
                 for (uint8_t i = 0; i < 14; i++) {
-                    putc(str[i]);
+                    usr_uart_put_char(str[i]);
                 }
 
                 for (uint8_t i = 0; i < 4; i++) {
                     if (stack_status.use & (1 << i)) {
-                        putc('1');
+                        usr_uart_put_char('1');
                     } else {
-                        putc('0');
+                        usr_uart_put_char('0');
                     }
                 }
-                putc('\r');
-                putc('\n');
+                usr_uart_put_char('\r');
+                usr_uart_put_char('\n');
 
             }
 
@@ -310,7 +307,7 @@ void __attribute__((naked)) task4(void)
                     char *str =
                         "Error: fpstart requires a number parameter\r\n";
                     for (uint8_t i = 0; i < 44; i++) {
-                        putc(str[i]);
+                        usr_uart_put_char(str[i]);
                     }
                 }
             }
@@ -364,44 +361,56 @@ void __attribute__((naked)) task4(void)
 
                         char *str = "Process killed successfully\r\n";
                         for (uint8_t i = 0; i < 30; i++) {
-                            putc(str[i]);
+                            usr_uart_put_char(str[i]);
                         }
                     } else {
                         char *str = "Error: Process does not exist\r\n";
                         for (uint8_t i = 0; i < 32; i++) {
-                            putc(str[i]);
+                            usr_uart_put_char(str[i]);
                         }
                     }
                 } else if (!has_param) {
                     char *str = "Error: kill requires a PID parameter\r\n";
                     for (uint8_t i = 0; i < 38; i++) {
-                        putc(str[i]);
+                        usr_uart_put_char(str[i]);
                     }
                 } else {
                     char str[40];
 
                     char *st = "Error: Invaild PID (must be 0-3)\r\n";
                     for (uint8_t i = 0; i < 34; i++) {
-                        putc(st[i]);
+                        usr_uart_put_char(st[i]);
                     }
                 }
             }
-
+            else if (cmd_buffer[0] == 's' && cmd_buffer[1] == 'w' && 
+                     cmd_buffer[2] == 'i' && cmd_buffer[3] == 't' && 
+                     cmd_buffer[4] == 'c' && cmd_buffer[5] == 'h' && 
+                     cmd_buffer[6] == '_' && cmd_buffer[7] == 'i' && 
+                     cmd_buffer[8] == 'n') {
+                if (!input_method) {
+                    if (!(usb_flags & USB_CONNECTED)) {
+                        char str[] = "keyboard not connect\r\n";
+                        for (uint8_t i = 0;i < sizeof(str);i++)
+                            usr_uart_put_char(str[i]);
+                    } else
+                        input_method = 1;
+                } else
+                    input_method = 0;
+            }
             else {
-                putc('?');
-                putc(' ');
+                usr_uart_put_char('?');
+                usr_uart_put_char(' ');
                 for (uint8_t i = 0; i < cmd_index; i++) {
-                    putc(cmd_buffer[i]);
+                    usr_uart_put_char(cmd_buffer[i]);
                 }
 
-                char *str = "\r\nTry: echo, ps, fpstart, fpend, kill\r\n";
-                for (uint8_t i = 0; i < 39; i++) {
-                    putc(str[i]);
+                char *str = "\r\nTry: echo, ps, fpstart, fpend, kill, switch_in\r\n";
+                for (uint8_t i = 0; i < 51; i++) {
+                    usr_uart_put_char(str[i]);
                 }
             }
         }
-
-        unlock();
     }
     exit();
 }
@@ -413,12 +422,12 @@ void main(void)
     GIE = 0;
     STKPTR &= 0xE0;
     uart_init();
-    // dma_init();
+    dma_init();
     extern_memory_init();
     ch375_init();
     __delay_ms(3000);
     INTCONbits.GIE = 1;
-
+    
     ADCON1 = 0xF;
     timer0_init();
 
