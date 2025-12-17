@@ -1,3 +1,4 @@
+#pragma once
 #include <type.h>
 
 #define BLOCK_SIZE 512
@@ -58,7 +59,7 @@ typedef struct __attribute__((packed)) {
     uint8_t name3[4];
 } fat32_long_name_t;
 
-#define LONGEST_NAME_SZ 23
+#define LONGEST_NAME_SZ 11
 
 typedef struct {
     uint8_t name[LONGEST_NAME_SZ];  // long name, this maybe replace to uint8_t
@@ -93,4 +94,4 @@ void free_dir_block(addr_t dir);
 
 addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size);
 
-void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, size_t cnt);
+void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt);
