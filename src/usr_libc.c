@@ -4,7 +4,7 @@ spin_lock_t uart_put_lock = {0};
 spin_lock_t uart_get_lock = {0};
 spin_lock_t kb_get_lock = {0};
 
-void usr_uart_put_char(char c) 
+void usr_uart_put_char(char c)
 {
     spin_lock(uart_put_lock);
     if (!PIR1bits.TXIF) {

@@ -4,8 +4,9 @@
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
-#include <tests.h>
+#include <fat32.h>
 #include <usr_libc.h>
+#include <tests.h>
 
 #define test_add(arg1, arg2, output) \
     do {                             \
@@ -142,7 +143,7 @@ void __attribute__((naked)) fpend(void)
     exit();
 }
 
-uint8_t input_method = 0; // 0 : uart, 1 : keyboard
+uint8_t input_method = 0;  // 0 : uart, 1 : keyboard
 
 void __attribute__((naked)) task4(void)
 {
@@ -240,10 +241,12 @@ void __attribute__((naked)) task4(void)
 
 
                         if (run_task[i].stack_info.stack_size > 0) {
-                            usr_uart_put_char('0' + run_task[i].stack_info.stack_start);
+                            usr_uart_put_char(
+                                '0' + run_task[i].stack_info.stack_start);
                             usr_uart_put_char('-');
-                            usr_uart_put_char('0' + (run_task[i].stack_info.stack_start +
-                                        run_task[i].stack_info.stack_size - 1));
+                            usr_uart_put_char(
+                                '0' + (run_task[i].stack_info.stack_start +
+                                       run_task[i].stack_info.stack_size - 1));
                         } else {
                             usr_uart_put_char('N');
                             usr_uart_put_char('/');
@@ -254,6 +257,7 @@ void __attribute__((naked)) task4(void)
                         usr_uart_put_char('\n');
                     }
                 }
+
 
 
                 str = "\r\nStack use: ";
@@ -271,6 +275,10 @@ void __attribute__((naked)) task4(void)
                 usr_uart_put_char('\r');
                 usr_uart_put_char('\n');
 
+            } else if (cmd_index == 7 && cmd_buffer[0] == 'f' &&
+                       cmd_buffer[1] == 's' && cmd_buffer[2] == 's' &&
+                       cmd_buffer[3] == 't' && cmd_buffer[4] == 'a' &&
+                       cmd_buffer[5] == 'r' && cmd_buffer[6] == 't') {
             }
 
             else if (cmd_buffer[0] == 'f' && cmd_buffer[1] == 'p' &&
@@ -382,30 +390,30 @@ void __attribute__((naked)) task4(void)
                         usr_uart_put_char(st[i]);
                     }
                 }
-            }
-            else if (cmd_buffer[0] == 's' && cmd_buffer[1] == 'w' && 
-                     cmd_buffer[2] == 'i' && cmd_buffer[3] == 't' && 
-                     cmd_buffer[4] == 'c' && cmd_buffer[5] == 'h' && 
-                     cmd_buffer[6] == '_' && cmd_buffer[7] == 'i' && 
-                     cmd_buffer[8] == 'n') {
+            } else if (cmd_buffer[0] == 's' && cmd_buffer[1] == 'w' &&
+                       cmd_buffer[2] == 'i' && cmd_buffer[3] == 't' &&
+                       cmd_buffer[4] == 'c' && cmd_buffer[5] == 'h' &&
+                       cmd_buffer[6] == '_' && cmd_buffer[7] == 'i' &&
+                       cmd_buffer[8] == 'n') {
                 if (!input_method) {
                     if (!(usb_flags & USB_CONNECTED)) {
                         char str[] = "keyboard not connect\r\n";
-                        for (uint8_t i = 0;i < sizeof(str);i++)
+                        for (uint8_t i = 0; i < sizeof(str); i++)
                             usr_uart_put_char(str[i]);
                     } else
                         input_method = 1;
                 } else
                     input_method = 0;
-            }
-            else {
+            } else {
                 usr_uart_put_char('?');
                 usr_uart_put_char(' ');
                 for (uint8_t i = 0; i < cmd_index; i++) {
                     usr_uart_put_char(cmd_buffer[i]);
                 }
 
-                char *str = "\r\nTry: echo, ps, fpstart, fpend, kill, switch_in\r\n";
+
+                char *str =
+                    "\r\nTry: echo, ps, fpstart, fpend, kill, switch_in\r\n";
                 for (uint8_t i = 0; i < 51; i++) {
                     usr_uart_put_char(str[i]);
                 }
@@ -427,13 +435,14 @@ void main(void)
     ch375_init();
     __delay_ms(3000);
     INTCONbits.GIE = 1;
-    
+
     ADCON1 = 0xF;
     timer0_init();
 
     init_scheduler();
 
     create_process(&task4, 2);
+    create_process(&task1, 0);
 
 
     start_schedule();

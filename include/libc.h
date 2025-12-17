@@ -20,7 +20,7 @@ extern uint8_t alloc_cache[64];
 
 #define MAP_BLOCK_CNT 2
 
-#define EXTERN_NULL 0x7FFFUL << 6
+#define EXTERN_NULL 0x7FFFULL << 6
 
 #define alloc_init()                                                \
     do {                                                            \
@@ -102,3 +102,5 @@ extern uint8_t alloc_cache[64];
         alloc_cache[(addr >> 12) & 0x3F] ^= 1 << ((addr >> 9) & 0x7);       \
         extern_memory_write((addr >> 18) + 0x4000UL, (char *) alloc_cache); \
     } while (0)
+
+int memcmp(const char *x, const char *y, uint16_t size);
