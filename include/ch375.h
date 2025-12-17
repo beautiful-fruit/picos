@@ -62,16 +62,17 @@ inline void CH375_WRITE(uint8_t data);
         __delay_us(100);         \
     } while (0)
 
-#define KB_INPUT_QUEUE_NUM 3
+#define KB_INPUT_QUEUE_NUM 7
 extern char kb_input_queue[KB_INPUT_QUEUE_NUM];
 
 typedef union {
     struct {
-        unsigned in : 3;
-        unsigned out : 3;
-        unsigned nop : 1;
+        unsigned in : 4;
+        unsigned out : 4;
+        unsigned nop : 7;
         unsigned int_flag : 1;  // for notice interrupt
     };
+    uint16_t meow;
 } kb_info_t;
 
 extern kb_info_t kb_info;
