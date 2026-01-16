@@ -1,17 +1,12 @@
+#include <memory.h>
 #include <type.h>
 
-#define RUN_TASK_SIZE 4
 #define RUN_TASK_MASK 0xF
 extern Task *current;
-extern Task run_task[RUN_TASK_SIZE];
 
-#define RUN_STACK_SIZE 4
 extern stack_status_t stack_status;
-extern uint8_t run_stack[RUN_STACK_SIZE][USTACK_SIZE];
 
-#define WAIT_QUEUE_SIZE 16
 #define WAIT_QUEUE_MOD 0xF
-extern wait_node_t wait_queue[WAIT_QUEUE_SIZE];
 extern unsigned char wait_in;
 extern unsigned char wait_out;
 

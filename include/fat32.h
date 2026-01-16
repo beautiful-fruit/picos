@@ -1,4 +1,5 @@
 #pragma once
+#include <memory.h>
 #include <type.h>
 
 #define BLOCK_SIZE 512
@@ -82,8 +83,6 @@ typedef struct dir_block {
         size of dir_block_t should close to page size
     */
 } dir_block_t;
-
-extern unsigned char picos_cache[64];
 
 fat32_t *create_fat32();
 

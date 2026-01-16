@@ -2,19 +2,13 @@
 #include <libc.h>
 #include <schedule.h>
 
-Task run_task[RUN_TASK_SIZE];
-
-Task idle_task;
-
 stack_status_t stack_status = {0, 4, 0};
-uint8_t run_stack[RUN_STACK_SIZE][USTACK_SIZE];
 
 volatile unsigned char run_task_info = 0;
 volatile uint8_t wait_task_info = 0;
 
 Task *current = NULL;
 
-wait_node_t wait_queue[WAIT_QUEUE_SIZE];
 unsigned char wait_in = 0;
 unsigned char wait_out = 0;
 

@@ -5,10 +5,6 @@
 
 fat32_t __fs;
 
-unsigned char picos_fat_cache[64];
-unsigned char picos_cache[64];
-unsigned char dir_block_cache[64];
-
 #define is_valid_ascii(c) (c >= 0x20 && c <= 0x7E)
 
 #define get_clus_first_sec(fs, n) \
