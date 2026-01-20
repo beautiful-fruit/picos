@@ -56,10 +56,11 @@ void printf(const char *fmt, ...)
                 putchar(*s++);
             break;
         }
-        case 'c':
+        case 'c': {
             char c = va_arg(vargs, char);
             putchar(c);
             break;
+        }
         case 'd': {
             int x = va_arg(vargs, int);
             if (x < 0) {

@@ -64,8 +64,8 @@ typedef struct __attribute__((packed)) {
 #define LONGEST_NAME_SZ 11
 
 typedef struct {
-    uint8_t name[LONGEST_NAME_SZ];  // long name, this maybe replace to uint8_t
-                                    // array in picos
+    uint8_t name[LONGEST_NAME_SZ + 1];  // long name, this maybe replace to
+                                        // uint8_t array in picos
     uint16_t block_entry_start;
     uint16_t block_entry_end;  // entry offset in block
     uint8_t attr;
