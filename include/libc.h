@@ -10,6 +10,7 @@ void printf(const char *fmt, ...);
 
 #define PANIC(fmt, ...)                                                       \
     do {                                                                      \
+        INTCONbits.GIE = 0;                                                   \
         printf("\n=== KERNEL PANIC ===\n");                                   \
         printf(fmt "\nLocation: %s:%d\n", ##__VA_ARGS__, __FILE__, __LINE__); \
         while (1)                                                             \

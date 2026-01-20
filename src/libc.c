@@ -2,6 +2,8 @@
 
 uint8_t alloc_cache[64];
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void putchar(char c)
 {
     if (c == '\n')
@@ -13,6 +15,8 @@ void putchar(char c)
     uart_putchar(c);
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 static void print_uint(unsigned int x)
 {
     if (x == 0) {
@@ -31,6 +35,8 @@ static void print_uint(unsigned int x)
         putchar(tmp[i--]);
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void printf(const char *fmt, ...)
 {
     va_list vargs;
