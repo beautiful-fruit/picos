@@ -222,12 +222,16 @@ addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
         if (dir == EXTERN_NULL)
             break;
         extern_memory_read((uint16_t) (dir >> 6), (char *) dir_block_cache);
-        int result =
-            memcmp((char *) ((dir_block_t *) dir_block_cache)->file.name,
-                   file_name, min(name_size, 11));
-        if (!result) {
-            target = dir;
-            goto find_file;
+
+        for (uint8_t i = 0; i < LONGEST_NAME_SZ + 1; i++) {
+            if (i == name_size &&
+                ((dir_block_t *) dir_block_cache)->file.name[i] == 0xFF) {
+                target = dir;
+                goto find_file;
+            }
+            if (i == name_size ||
+                ((dir_block_t *) dir_block_cache)->file.name[i] != file_name[i])
+                break;
         }
         dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
     }
