@@ -1,12 +1,11 @@
 #include <ch375.h>
 #include <dma.h>
+#include <fat32.h>
 #include <interrupt.h>
 #include <kernel.h>
 #include <libc.h>
 #include <schedule.h>
-#include <fat32.h>
 #include <usr_libc.h>
-#include <tests.h>
 
 #define test_add(arg1, arg2, output) \
     do {                             \
@@ -36,6 +35,8 @@ void __attribute__((naked)) test_add_impl(void)
 uint32_t fsstart_param = 0;
 uint32_t fsstart_ans = 0;
 
+fat32_t *fs;
+addr_t root;
 
 void __attribute__((naked)) task1(void)
 {
@@ -81,10 +82,7 @@ void __attribute__((naked)) fpstart(void)
         result = c;
     }
 
-    spin_lock_t ll;
-    spin_lock(ll);
     fsstart_ans = result;
-    spin_unlock(ll);
 
     exit();
 }
@@ -92,23 +90,20 @@ void __attribute__((naked)) fpstart(void)
 void __attribute__((naked)) fpend(void)
 {
     uint32_t result;
+    uint8_t i;
 
 
-
-    spin_lock_t ll;
-    spin_lock(ll);
     result = fsstart_ans;
-    spin_unlock(ll);
 
     if (result == 0) {
         char *st =
             "e\b\brror: no result available or calculation not finished\r\n$ ";
-        for (uint8_t i = 0; i < 60; i++) {
+        for (i = 0; i < 60; i++) {
             usr_uart_put_char(st[i]);
         }
     } else {
         char *st2 = "r\b\besult: ";
-        for (uint8_t i = 0; i < 11; i++) {
+        for (i = 0; i < 11; i++) {
             usr_uart_put_char(st2[i]);
         }
 
@@ -124,7 +119,7 @@ void __attribute__((naked)) fpend(void)
                 temp /= 10;
             }
 
-            for (int8_t i = num_len - 1; i >= 0; i--) {
+            for (i = num_len - 1; i >= 0; i--) {
                 usr_uart_put_char(num_str[i]);
             }
         }
@@ -135,10 +130,7 @@ void __attribute__((naked)) fpend(void)
     }
 
 
-    spin_lock_t ll2;
-    spin_lock(ll2);
     fsstart_ans = 0;
-    spin_unlock(ll2);
 
     exit();
 }
@@ -149,7 +141,8 @@ void __attribute__((naked)) task4(void)
 {
     static char cmd_buffer[32];
     static uint8_t cmd_index = 0;
-
+    uint8_t i;
+    char *str;
     while (1) {
         usr_uart_put_char('$');
         usr_uart_put_char(' ');
@@ -192,7 +185,7 @@ void __attribute__((naked)) task4(void)
                 cmd_buffer[1] == 'c' && cmd_buffer[2] == 'h' &&
                 cmd_buffer[3] == 'o') {
                 if (cmd_index > 4 && cmd_buffer[4] == ' ') {
-                    for (uint8_t i = 5; i < cmd_index; i++) {
+                    for (i = 5; i < cmd_index; i++) {
                         usr_uart_put_char(cmd_buffer[i]);
                     }
                     usr_uart_put_char('\r');
@@ -200,8 +193,8 @@ void __attribute__((naked)) task4(void)
                 }
 
                 else if (cmd_index == 4) {
-                    char *str = "Usage: echo <text>\r\n";
-                    for (uint8_t i = 0; i < 20; i++) {
+                    str = "Usage: echo <text>\r\n";
+                    for (i = 0; i < 20; i++) {
                         usr_uart_put_char(str[i]);
                     }
                 }
@@ -209,19 +202,19 @@ void __attribute__((naked)) task4(void)
 
             else if (cmd_index == 2 && cmd_buffer[0] == 'p' &&
                      cmd_buffer[1] == 's') {
-                char *str = "PID State Stack\r\n------------------\r\n";
-                for (uint8_t i = 0; i < 38; i++) {
+                str = "PID State Stack\r\n------------------\r\n";
+                for (i = 0; i < 38; i++) {
                     usr_uart_put_char(str[i]);
                 }
 
-                for (uint8_t i = 0; i < 4; i++) {
+                for (i = 0; i < 4; i++) {
                     if (run_task_info & (1 << i)) {
                         usr_uart_put_char('0' + i);
                         usr_uart_put_char(' ');
                         usr_uart_put_char(' ');
 
 
-                        if ((run_task_info >> 4) & 0x3 == i) {
+                        if (((run_task_info >> 4) & 0x3) == i) {
                             usr_uart_put_char('R');  // Running
                         } else if (wait_task_info & (1 << i)) {
                             usr_uart_put_char('W');  // Waiting
@@ -259,11 +252,11 @@ void __attribute__((naked)) task4(void)
                 }
 
                 str = "\r\nStack use: ";
-                for (uint8_t i = 0; i < 14; i++) {
+                for (i = 0; i < 14; i++) {
                     usr_uart_put_char(str[i]);
                 }
 
-                for (uint8_t i = 0; i < 4; i++) {
+                for (i = 0; i < 4; i++) {
                     if (stack_status.use & (1 << i)) {
                         usr_uart_put_char('1');
                     } else {
@@ -273,16 +266,10 @@ void __attribute__((naked)) task4(void)
                 usr_uart_put_char('\r');
                 usr_uart_put_char('\n');
 
-            } else if (cmd_index == 7 && cmd_buffer[0] == 'f' &&
-                       cmd_buffer[1] == 's' && cmd_buffer[2] == 's' &&
-                       cmd_buffer[3] == 't' && cmd_buffer[4] == 'a' &&
-                       cmd_buffer[5] == 'r' && cmd_buffer[6] == 't') {
-            }
-
-            else if (cmd_buffer[0] == 'f' && cmd_buffer[1] == 'p' &&
-                     cmd_buffer[2] == 's' && cmd_buffer[3] == 't' &&
-                     cmd_buffer[4] == 'a' && cmd_buffer[5] == 'r' &&
-                     cmd_buffer[6] == 't') {
+            } else if (cmd_buffer[0] == 'f' && cmd_buffer[1] == 'p' &&
+                       cmd_buffer[2] == 's' && cmd_buffer[3] == 't' &&
+                       cmd_buffer[4] == 'a' && cmd_buffer[5] == 'r' &&
+                       cmd_buffer[6] == 't') {
                 uint32_t ans = 0;
                 uint8_t has_param = 0;
 
@@ -304,15 +291,11 @@ void __attribute__((naked)) task4(void)
                 }
 
                 if (has_param) {
-                    spin_lock_t ll;
-                    spin_lock(ll);
                     fsstart_param = ans;
                     create_process(&fpstart, 0);
-                    spin_unlock(ll);
                 } else {
-                    char *str =
-                        "Error: fpstart requires a number parameter\r\n";
-                    for (uint8_t i = 0; i < 44; i++) {
+                    str = "Error: fpstart requires a number parameter\r\n";
+                    for (i = 0; i < 44; i++) {
                         usr_uart_put_char(str[i]);
                     }
                 }
@@ -321,10 +304,7 @@ void __attribute__((naked)) task4(void)
             else if (cmd_index == 5 && cmd_buffer[0] == 'f' &&
                      cmd_buffer[1] == 'p' && cmd_buffer[2] == 'e' &&
                      cmd_buffer[3] == 'n' && cmd_buffer[4] == 'd') {
-                spin_lock_t ll;
-                spin_lock(ll);
                 create_process(&fpend, 0);
-                spin_unlock(ll);
 
             }
 
@@ -351,11 +331,6 @@ void __attribute__((naked)) task4(void)
 
                 if (has_param && pid < RUN_TASK_SIZE) {
                     if (run_task_info & (1 << pid)) {
-                        spin_lock_t ll;
-                        spin_lock(ll);
-
-
-
                         if (run_task[pid].stack_info.stack_size > 0) {
                             stack_release(pid);
                         }
@@ -363,28 +338,25 @@ void __attribute__((naked)) task4(void)
 
                         run_task_info &= (uint8_t) ~(1 << pid);
 
-                        spin_unlock(ll);
 
-                        char *str = "Process killed successfully\r\n";
-                        for (uint8_t i = 0; i < 30; i++) {
+                        str = "Process killed successfully\r\n";
+                        for (i = 0; i < 30; i++) {
                             usr_uart_put_char(str[i]);
                         }
                     } else {
-                        char *str = "Error: Process does not exist\r\n";
-                        for (uint8_t i = 0; i < 32; i++) {
+                        str = "Error: Process does not exist\r\n";
+                        for (i = 0; i < 32; i++) {
                             usr_uart_put_char(str[i]);
                         }
                     }
                 } else if (!has_param) {
-                    char *str = "Error: kill requires a PID parameter\r\n";
-                    for (uint8_t i = 0; i < 38; i++) {
+                    str = "Error: kill requires a PID parameter\r\n";
+                    for (i = 0; i < 38; i++) {
                         usr_uart_put_char(str[i]);
                     }
                 } else {
-                    char str[40];
-
                     char *st = "Error: Invaild PID (must be 0-3)\r\n";
-                    for (uint8_t i = 0; i < 34; i++) {
+                    for (i = 0; i < 34; i++) {
                         usr_uart_put_char(st[i]);
                     }
                 }
@@ -395,24 +367,63 @@ void __attribute__((naked)) task4(void)
                        cmd_buffer[8] == 'n') {
                 if (!input_method) {
                     if (!(usb_flags & USB_CONNECTED)) {
-                        char str[] = "keyboard not connect\r\n";
-                        for (uint8_t i = 0; i < sizeof(str); i++)
+                        str = "keyboard not connect\r\n";
+                        for (i = 0; i < sizeof(str); i++)
                             usr_uart_put_char(str[i]);
                     } else
                         input_method = 1;
                 } else
                     input_method = 0;
+            } else if (cmd_index == 2 && cmd_buffer[0] == 'l' &&
+                       cmd_buffer[1] == 's') {
+                GIE = 0;
+                ls_dir((addr_t) root);
+                GIE = 1;
+            } else if (cmd_index >= 3 && cmd_buffer[0] == 'c' &&
+                       cmd_buffer[1] == 'a' && cmd_buffer[2] == 't') {
+                uint8_t idx = 3;
+
+                while (idx < cmd_index && cmd_buffer[idx] == ' ')
+                    idx++;
+                if (idx == cmd_index) {
+                    str = "Usage: cat [file]\r\n";
+                    for (uint8_t i = 0; i < 19; i++) {
+                        usr_uart_put_char(str[i]);
+                    }
+                    continue;
+                }
+                GIE = 0;
+                addr_t target_addr =
+                    find_file(root, &cmd_buffer[idx], cmd_index - idx);
+                if (target_addr != EXTERN_NULL) {
+                    extern_memory_read((uint16_t) (target_addr >> 6),
+                                       (char *) picos_cache);
+                    file_t *target = (file_t *) picos_cache;
+                    if (target->file_size == 0)
+                        continue;
+                    addr_t target_buf;
+                    extern_alloc(8, target_buf);
+                    read_file(fs, target, target_buf, 512);
+                    for (uint16_t i = 0; i < 512; i += 64) {
+                        extern_memory_read((uint16_t) ((target_buf + i) >> 6),
+                                           (char *) picos_cache);
+                        for (uint16_t j = 0; j < 64; j++) {
+                            putchar(picos_cache[j]);
+                            if (i + j == target->file_size)
+                                goto end_cat;
+                        }
+                    }
+                end_cat:
+                }
+                GIE = 1;
             } else {
                 usr_uart_put_char('?');
                 usr_uart_put_char(' ');
-                for (uint8_t i = 0; i < cmd_index; i++) {
+                for (i = 0; i < cmd_index; i++) {
                     usr_uart_put_char(cmd_buffer[i]);
                 }
-
-
-                char *str =
-                    "\r\nTry: echo, ps, fpstart, fpend, kill, switch_in\r\n";
-                for (uint8_t i = 0; i < 51; i++) {
+                str = "\r\nTry: echo, ps, fpstart, fpend, kill, switch_in\r\n";
+                for (i = 0; i < 51; i++) {
                     usr_uart_put_char(str[i]);
                 }
             }
@@ -432,6 +443,12 @@ void main(void)
     extern_memory_init();
     ch375_init();
     __delay_ms(3000);
+
+    alloc_init();
+
+    fs = create_fat32();
+    root = load_dir(fs, fs->root_clus);
+
     INTCONbits.GIE = 1;
 
     ADCON1 = 0xF;
