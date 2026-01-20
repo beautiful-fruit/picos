@@ -71,6 +71,8 @@ void extern_memory_init(void)
         "BCF LATA, 3\n");
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void extern_memory_write(uint16_t block_addr, char *src)
 {
     FSR0L = ((uint16_t) src) & 0xFF;
@@ -154,6 +156,8 @@ void extern_memory_write(uint16_t block_addr, char *src)
         "BCF LATA, 3\n");
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void extern_memory_read(uint16_t block_addr, char *dest)
 {
     FSR0L = ((uint16_t) dest) & 0xFF;

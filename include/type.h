@@ -41,7 +41,7 @@ typedef struct context {
     unsigned char eecon1;
 } Context;
 
-#define USTACK_SIZE 128
+#define USTACK_SIZE 64
 
 typedef struct task {
     uint8_t *sp;

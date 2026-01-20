@@ -1,6 +1,7 @@
 #include <ch375.h>
 
-
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 inline void CH375_WRITE(uint8_t data)
 {
     TRISD = 0;
@@ -12,6 +13,8 @@ inline void CH375_WRITE(uint8_t data)
     CH375_CE = 1;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 inline uint8_t CH375_READ()
 {
     CH375_A0 = 0;

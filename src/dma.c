@@ -24,7 +24,7 @@ void wait_for_int1(void)
 uint8_t dma_request(struct dma_request *req)
 {
     INT1IF = 0;
-    uint8_t *ptr = req;
+    uint8_t *ptr = (uint8_t *) req;
     uint8_t sz = sizeof(struct dma_request);
     while (sz--) {
         LATD = *ptr++;
@@ -60,7 +60,7 @@ int disk_write(uint32_t sector, uint32_t addr)
     addr -= 0x4000ULL << 6;
     struct dma_request req;
     req.sector = sector;
-    req.block_addr = addr >> 9;
+    req.block_addr = (uint16_t) (addr >> 9);
     req.mode = 0;
     DMA_MEM_LOCK = 1;
     INT1IF = 0;
@@ -99,7 +99,7 @@ int disk_read(uint32_t sector, uint32_t addr)
     INT1IF = 0;
     struct dma_request req;
     req.sector = sector;
-    req.block_addr = addr >> 9;
+    req.block_addr = (uint16_t) (addr >> 9);
     req.mode = 1;
     DMA_MEM_LOCK = 1;
     if (dma_request(&req) != DMA_FLAG_SUCCESS) {
