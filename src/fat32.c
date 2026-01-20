@@ -122,7 +122,7 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
                                 x++;
                             }
                         }
-                        now->file.name[x] = 0;
+                        now->file.name[x] = 0xFF;
 
 
                         if (block_entry_start == 65535)
