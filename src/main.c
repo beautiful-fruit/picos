@@ -40,17 +40,27 @@ addr_t root;
 
 void __attribute__((naked)) task1(void)
 {
-    while (1)
-        ;
+    while (1) ;
     exit();
 }
 
-void __attribute__((naked)) task2(void) {}
+void __attribute__((naked)) task2(void) 
+{
+    while (1) {
+        usr_uart_put_char('2');
+        __delay_ms(1000);
+    }
+    exit();
+}
 
 void __attribute__((naked)) task3(void) {}
 
+spin_lock_t fp_lock = {0};
+
 void __attribute__((naked)) fpstart(void)
 {
+    usr_uart_put_char('f');
+    usr_uart_put_char('\n');
     uint32_t n = fsstart_param;
     uint32_t result = 0;
 
@@ -81,20 +91,20 @@ void __attribute__((naked)) fpstart(void)
         }
         result = c;
     }
-
+    spin_lock(fp_lock);
     fsstart_ans = result;
-
+    spin_unlock(fp_lock);
     exit();
 }
 
 void __attribute__((naked)) fpend(void)
 {
     uint32_t result;
-    uint8_t i;
+    int8_t i;
 
-
+    spin_lock(fp_lock);
     result = fsstart_ans;
-
+    spin_unlock(fp_lock);
     if (result == 0) {
         char *st =
             "e\b\brror: no result available or calculation not finished\r\n$ ";
@@ -102,10 +112,8 @@ void __attribute__((naked)) fpend(void)
             usr_uart_put_char(st[i]);
         }
     } else {
-        char *st2 = "r\b\besult: ";
-        for (i = 0; i < 11; i++) {
-            usr_uart_put_char(st2[i]);
-        }
+        usr_uart_put_char('r');
+        usr_uart_put_char(':');
 
         static char num_str[16];
         uint8_t num_len = 0;
@@ -129,8 +137,9 @@ void __attribute__((naked)) fpend(void)
         usr_uart_put_char(' ');
     }
 
-
+    spin_lock(fp_lock);
     fsstart_ans = 0;
+    spin_unlock(fp_lock);
 
     exit();
 }
@@ -152,7 +161,7 @@ void __attribute__((naked)) task4(void)
         while (1) {
             char ch;
             if (input_method == 0)
-                ch = usr_uart_get_char();
+                usr_uart_get_char(ch);
             else
                 usr_kb_get_char(ch);
 
@@ -292,7 +301,9 @@ void __attribute__((naked)) task4(void)
 
                 if (has_param) {
                     fsstart_param = ans;
+                    GIE = 0;
                     create_process(&fpstart, 0);
+                    GIE = 1;
                 } else {
                     str = "Error: fpstart requires a number parameter\r\n";
                     for (i = 0; i < 44; i++) {
@@ -304,8 +315,9 @@ void __attribute__((naked)) task4(void)
             else if (cmd_index == 5 && cmd_buffer[0] == 'f' &&
                      cmd_buffer[1] == 'p' && cmd_buffer[2] == 'e' &&
                      cmd_buffer[3] == 'n' && cmd_buffer[4] == 'd') {
+                GIE = 0;
                 create_process(&fpend, 0);
-
+                GIE = 1;
             }
 
             else if (cmd_buffer[0] == 'k' && cmd_buffer[1] == 'i' &&
@@ -332,7 +344,9 @@ void __attribute__((naked)) task4(void)
                 if (has_param && pid < RUN_TASK_SIZE) {
                     if (run_task_info & (1 << pid)) {
                         if (run_task[pid].stack_info.stack_size > 0) {
+                            GIE = 0;
                             stack_release(pid);
+                            GIE = 1;
                         }
 
 
@@ -416,6 +430,11 @@ void __attribute__((naked)) task4(void)
                 end_cat:
                 }
                 GIE = 1;
+            } else if (cmd_index == 5 && cmd_buffer[0] == 'm' &&
+                       cmd_buffer[1] == 'u' && cmd_buffer[2] == 'l' && cmd_buffer[3] == 't' && cmd_buffer[4] == 'i') {
+                GIE = 0;
+                create_process(task2, 0);
+                GIE = 1;
             } else {
                 usr_uart_put_char('?');
                 usr_uart_put_char(' ');
@@ -435,10 +454,14 @@ void __attribute__((naked)) task4(void)
 
 void main(void)
 {
+    
     // Make the return address stack empty
     GIE = 0;
     STKPTR &= 0xE0;
     uart_init();
+
+    printf("boot\n");
+
     dma_init();
     extern_memory_init();
     ch375_init();
@@ -459,6 +482,7 @@ void main(void)
     create_process(&task4, 2);
     create_process(&task1, 0);
 
+    
     start_schedule();
 
     PANIC("hello\n");

@@ -4,7 +4,7 @@ SRC = src
 CFLAGS = -mcpu=18F4520 -mdfp=`pwd`/dfp/xc8 -Wl,-Map=$(BUILD)/main.map -Iinclude -O2
 
 SRCS = src/hal.c src/main.c src/libc.c src/interrupt.c src/schedule.c src/ch375.c \
-		src/debug.c src/dma.c src/usr_libc.c src/fat32.c src/tests.c
+		src/debug.c src/dma.c src/usr_libc.c src/fat32.c src/tests.c src/memory.c
 OBJS := $(patsubst src/%.c,$(BUILD)/%.p1,$(SRCS))
 
 INTERNAL_CLOCK ?= 0
@@ -48,15 +48,15 @@ $(BUILD)/main.elf: $(OBJS) $(BUILD)/isr.o $(BUILD)/keep_funcs.o
 
 flash:
 	./parse_config.py $(BUILD)/main.hex pic18f4520.fuses.conf
-	minipro -p 'PIC18F4520@DIP40' -i -E
-	minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
-	minipro -p 'PIC18F4520@DIP40' -i -e -w build/main.hex --format ihex
+	./minipro -p 'PIC18F4520@DIP40' -i -E
+	./minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
+	./minipro -p 'PIC18F4520@DIP40' -i -e -w build/main.hex --format ihex
 
 flash-dma:
 	./parse_config.py dma_firmware/$(BUILD)/main.hex pic18f4520.fuses.conf
-	minipro -p 'PIC18F4520@DIP40' -i -E
-	minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
-	minipro -p 'PIC18F4520@DIP40' -i -e -w dma_firmware/$(BUILD)/main.hex --format ihex
+	./minipro -p 'PIC18F4520@DIP40' -i -E
+	./minipro -p 'PIC18F4520@DIP40' -i -w pic18f4520.fuses.conf -c config
+	./minipro -p 'PIC18F4520@DIP40' -i -e -w dma_firmware/$(BUILD)/main.hex --format ihex
 
 clean:
 	rm $(BUILD)/*
