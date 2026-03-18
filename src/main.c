@@ -1,39 +1,10 @@
 #include <ch375.h>
 #include <dma.h>
 #include <fat32.h>
+#include <fibonacci.h>
 #include <interrupt.h>
-#include <kernel.h>
 #include <libc.h>
-#include <schedule.h>
 #include <usr_libc.h>
-
-#define test_add(arg1, arg2, output) \
-    do {                             \
-        *(current->sp) = arg1;       \
-        *(current->sp + 1) = arg2;   \
-        current->sp += 6;            \
-        asm("CALL _test_add_impl");  \
-        current->sp -= 6;            \
-        output = *(current->sp + 2); \
-    } while (0)
-
-void __attribute__((naked)) test_add_impl(void)
-{
-#define ret (*(current->sp - 4))
-#define arg1 (*(current->sp - 6))
-#define arg2 (*(current->sp - 5))
-    enter_user_func();
-    ret = arg1 + arg2;
-#undef ret
-#undef arg1
-#undef arg2
-    return_user_func();
-}
-
-#define MOD 1000000009UL
-
-uint32_t fsstart_param = 0;
-uint32_t fsstart_ans = 0;
 
 fat32_t *fs;
 addr_t root;
@@ -61,95 +32,6 @@ void __attribute__((naked)) task2(void)
 }
 
 void __attribute__((naked)) task3(void) {}
-
-spin_lock_t fp_lock = {0};
-
-void __attribute__((naked)) fpstart(void)
-{
-    usr_uart_put_char('f');
-    usr_uart_put_char('\n');
-    uint32_t n = fsstart_param;
-    uint32_t result = 0;
-
-    if (n == 0) {
-        result = 0;
-    } else if (n == 1) {
-        result = 1;
-    } else {
-        uint32_t a = 0;
-        uint32_t b = 1;
-        uint32_t c = 0;
-
-
-        for (uint32_t i = 2; i <= n; i++) {
-            lock();
-
-
-            uint32_t block_end = (i + 49 < n) ? i + 49 : n;
-            for (uint32_t j = i; j <= block_end; j++) {
-                c = (a + b) % MOD;
-                a = b;
-                b = c;
-            }
-
-            unlock();
-
-            i = block_end;
-        }
-        result = c;
-    }
-    spin_lock(fp_lock);
-    fsstart_ans = result;
-    spin_unlock(fp_lock);
-    exit();
-}
-
-void __attribute__((naked)) fpend(void)
-{
-    uint32_t result;
-    int8_t i;
-
-    spin_lock(fp_lock);
-    result = fsstart_ans;
-    spin_unlock(fp_lock);
-    if (result == 0) {
-        char *st =
-            "e\b\brror: no result available or calculation not finished\r\n$ ";
-        for (i = 0; i < 60; i++) {
-            usr_uart_put_char(st[i]);
-        }
-    } else {
-        usr_uart_put_char('r');
-        usr_uart_put_char(':');
-
-        static char num_str[16];
-        uint8_t num_len = 0;
-
-        if (result == 0) {
-            usr_uart_put_char('0');
-        } else {
-            uint32_t temp = result;
-            while (temp > 0) {
-                num_str[num_len++] = (temp % 10) + '0';
-                temp /= 10;
-            }
-
-            for (i = num_len - 1; i >= 0; i--) {
-                usr_uart_put_char(num_str[i]);
-            }
-        }
-        usr_uart_put_char('\r');
-        usr_uart_put_char('\n');
-        usr_uart_put_char('$');
-        usr_uart_put_char(' ');
-    }
-
-    spin_lock(fp_lock);
-    fsstart_ans = 0;
-    spin_unlock(fp_lock);
-
-    exit();
-}
 
 uint8_t input_method = 1;  // 0 : uart, 1 : keyboard
 
