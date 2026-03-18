@@ -38,6 +38,12 @@ uint32_t fsstart_ans = 0;
 fat32_t *fs;
 addr_t root;
 
+void __attribute__((naked)) init(void)
+{
+    enable_keyboard();
+    exit();
+}
+
 void __attribute__((naked)) task1(void)
 {
     while (1)
@@ -454,7 +460,6 @@ void __attribute__((naked)) task4(void)
 
 void main(void)
 {
-    
     // Make the return address stack empty
     GIE = 0;
     STKPTR &= 0xE0;
@@ -478,9 +483,9 @@ void main(void)
     init_scheduler();
 
     create_process(&task4, 2);
-    create_process(&task1, 0);
+    create_process(&init, 0);
 
-    
+
     start_schedule();
 
     PANIC("hello\n");

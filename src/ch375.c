@@ -370,7 +370,7 @@ void usb_handler()
     }
 }
 
-void ch375_gpio_init(void)
+void ch375_init(void)
 {
     ADCON1 = 0b1111;
     TRISA = 0;
@@ -382,17 +382,9 @@ void ch375_gpio_init(void)
     TRISC0 = 0;
     CH375_CE = 1;
     TRISB0 = 1;
-}
-
-
-void ch375_init()
-{
-    ch375_gpio_init();
     __delay_ms(40);
     INTCON2bits.INTEDG0 = 0;
     INTCONbits.INT0IF = 0;
-    INTCONbits.INT0IE = 1;
     CH375_CMD(GET_IC_VAR);
-    printf("CH375 IC version: 0x%x\n", CH375_READ());
     set_usb_mode(USB_MODE_SOF);
 }
