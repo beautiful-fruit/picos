@@ -40,11 +40,12 @@ addr_t root;
 
 void __attribute__((naked)) task1(void)
 {
-    while (1) ;
+    while (1)
+        ;
     exit();
 }
 
-void __attribute__((naked)) task2(void) 
+void __attribute__((naked)) task2(void)
 {
     while (1) {
         usr_uart_put_char('2');
@@ -144,7 +145,7 @@ void __attribute__((naked)) fpend(void)
     exit();
 }
 
-uint8_t input_method = 0;  // 0 : uart, 1 : keyboard
+uint8_t input_method = 1;  // 0 : uart, 1 : keyboard
 
 void __attribute__((naked)) task4(void)
 {
@@ -410,16 +411,14 @@ void __attribute__((naked)) task4(void)
                 addr_t target_addr =
                     find_file(root, &cmd_buffer[idx], cmd_index - idx);
                 if (target_addr != EXTERN_NULL) {
-                    extern_memory_read((uint16_t) (target_addr >> 6),
-                                       (char *) picos_cache);
+                    extern_memory_read(target_addr, (char *) picos_cache);
                     file_t *target = (file_t *) picos_cache;
                     if (target->file_size == 0)
                         continue;
-                    addr_t target_buf;
-                    extern_alloc(8, target_buf);
+                    addr_t target_buf = extern_alloc();
                     read_file(fs, target, target_buf, 512);
                     for (uint16_t i = 0; i < 512; i += 64) {
-                        extern_memory_read((uint16_t) ((target_buf + i) >> 6),
+                        extern_memory_read(target_buf + i,
                                            (char *) picos_cache);
                         for (uint16_t j = 0; j < 64; j++) {
                             putchar(picos_cache[j]);
@@ -431,7 +430,8 @@ void __attribute__((naked)) task4(void)
                 }
                 GIE = 1;
             } else if (cmd_index == 5 && cmd_buffer[0] == 'm' &&
-                       cmd_buffer[1] == 'u' && cmd_buffer[2] == 'l' && cmd_buffer[3] == 't' && cmd_buffer[4] == 'i') {
+                       cmd_buffer[1] == 'u' && cmd_buffer[2] == 'l' &&
+                       cmd_buffer[3] == 't' && cmd_buffer[4] == 'i') {
                 GIE = 0;
                 create_process(task2, 0);
                 GIE = 1;
@@ -459,8 +459,6 @@ void main(void)
     GIE = 0;
     STKPTR &= 0xE0;
     uart_init();
-
-    printf("boot\n");
 
     dma_init();
     extern_memory_init();
