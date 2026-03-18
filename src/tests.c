@@ -13,11 +13,11 @@ void extern_memory_test(void)
 {
     for (int i = 0; i < 64; i++)
         a[i] = i;
-    extern_memory_write(0x5d00, a);
+    _extern_memory_write(0x5d00, a);
     for (int i = 0; i < 64; i++)
         a[i] = 0;
 
-    extern_memory_read(0x5d00, a);
+    _extern_memory_read(0x5d00, a);
     for (int i = 0; i < 64; i++) {
         printf("%x: %x\n", i, a[i]);
     }
@@ -26,13 +26,13 @@ void extern_memory_test(void)
     for (uint16_t addr = 0; addr < 0x2000; addr++) {
         for (int i = 0; i < 64; i++)
             a[i] = yee_rand();
-        extern_memory_write(addr, a);
+        _extern_memory_write(addr, a);
     }
 
     for (uint16_t addr = 0x4000; addr < 0x6000; addr++) {
         for (int i = 0; i < 64; i++)
             a[i] = yee_rand();
-        extern_memory_write(addr, a);
+        _extern_memory_write(addr, a);
     }
 
     for (int i = 0; i < 64; i++)
@@ -41,7 +41,7 @@ void extern_memory_test(void)
     int fail = 0;
 
     for (uint16_t addr = 0; addr < 0x2000; addr++) {
-        extern_memory_read(addr, a);
+        _extern_memory_read(addr, a);
         if ((addr & 0xFF) == 0) {
             printf("addr: 0x%x\n", addr);
         }
@@ -54,7 +54,7 @@ void extern_memory_test(void)
         }
     }
     for (uint16_t addr = 0x4000; addr < 0x6000; addr++) {
-        extern_memory_read(addr, a);
+        _extern_memory_read(addr, a);
         if ((addr & 0xFF) == 0) {
             printf("addr: 0x%x\n", addr);
         }
@@ -85,9 +85,11 @@ void disk_test(void)
             for (int j = 0; j < 64; j++) {
                 a[j] = yee_rand();
             }
-            extern_memory_write(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
+            _extern_memory_write(0x4000 | ((i & 0b1111111111111111111) >> 6),
+                                 a);
         }
-        if (disk_write(addr >> 9, (0x4000 << 6) | (addr & 0b1111111111111111111))) {
+        if (disk_write(addr >> 9,
+                       (0x4000 << 6) | (addr & 0b1111111111111111111))) {
             fail = 1;
             printf("disk_write fail: addr = %lx\n", addr);
             goto disk_test_done;
@@ -100,7 +102,7 @@ void disk_test(void)
             printf("reading addr: 0x%lx\n", addr);
         disk_read(addr >> 9, (0x4000 << 6) | (addr & 0b1111111111111111111));
         for (uint32_t i = addr; i < addr + 512; i += 64) {
-            extern_memory_read(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
+            _extern_memory_read(0x4000 | ((i & 0b1111111111111111111) >> 6), a);
             for (int j = 0; j < 64; j++) {
                 if (a[j] != yee_rand()) {
                     printf("disk_read value fail: addr = %lx\n", i);

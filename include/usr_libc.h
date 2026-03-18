@@ -23,17 +23,17 @@ extern spin_lock_t kb_get_lock;
         spin_unlock(kb_get_lock);   \
     } while (0)
 
-#define usr_uart_put_char(c)                                             \
-    do {                                                                 \
-        GIE = 0;\
-        putchar(c);\
-        GIE = 1;\
+#define usr_uart_put_char(c) \
+    do {                     \
+        GIE = 0;             \
+        putchar(c);          \
+        GIE = 1;             \
     } while (0)
 
 #define usr_uart_get_char(c)                                             \
     do {                                                                 \
         spin_lock(uart_get_lock);                                        \
-        INTCONbits.GIE = 0;                                          \
+        INTCONbits.GIE = 0;                                              \
         if (!PIR1bits.RCIF) {                                            \
             PIE1bits.RCIE = 1;                                           \
             rc_wait = get_pid();                                         \
@@ -43,7 +43,7 @@ extern spin_lock_t kb_get_lock;
             while (wait_task_info & (1 << ((run_task_info >> 4) & 0x3))) \
                 ;                                                        \
         }                                                                \
-        set_timer_delay(1);                                          \
+        set_timer_delay(1);                                              \
         c = RCREG;                                                       \
         spin_unlock(uart_get_lock);                                      \
     } while (0)

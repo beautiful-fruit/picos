@@ -8,7 +8,6 @@
 #define bool unsigned char
 #define NULL 0
 #endif
-#include <interrupt.h>
 
 
 #pragma config OSC = HS
@@ -37,6 +36,12 @@ void extern_memory_init(void);
  * NOTICE: extern memory read/write have to be called with interrupt turned
  * off.
  */
-void extern_memory_read(uint16_t block_addr, char *dest);
+void _extern_memory_read(uint16_t block_addr, char *dest);
 
-void extern_memory_write(uint16_t block_addr, char *src);
+void _extern_memory_write(uint16_t block_addr, char *src);
+
+#define extern_memory_read(addr, dest) \
+    _extern_memory_read((uint16_t) ((addr) >> 6), dest)
+
+#define extern_memory_write(addr, src) \
+    _extern_memory_write((uint16_t) ((addr) >> 6), src)
