@@ -96,15 +96,99 @@ DONE:
     va_end(vargs);
 }
 
-int memcmp(const char *x, const char *y, uint16_t size)
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void memcpy(void *dest, const void *src, uint16_t size)
 {
-    for (uint16_t i = 0; i < size; i++) {
-        if (*x < *y)
-            return -1;
-        else if (*x > *y)
-            return 1;
-        x++;
-        y++;
+    for (uint16_t i = 0; i < size; i++)
+        ((char *) dest)[i] = ((char *) src)[i];
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void alloc_init()
+{
+    uint8_t i;
+    for (i = 0; i < 64; i++)
+        alloc_cache[i] = 0;
+    for (i = 1; i < MAP_BLOCK_CNT; i++) {
+        extern_memory_write(i, (char *) alloc_cache);
+        extern_memory_write(i + DISK_MEMORY_START, (char *) alloc_cache);
     }
-    return 0;
+    /* The first 8 block use as bit map */
+    alloc_cache[0] = 0x01;
+    extern_memory_write(0, (char *) alloc_cache);
+    extern_memory_write(DISK_MEMORY_START, (char *) alloc_cache);
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+addr_t extern_alloc()
+{
+    addr_t addr = EXTERN_NULL;
+    for (uint8_t i = 0; i < MAP_BLOCK_CNT; i++) {
+        extern_memory_read(i, (char *) alloc_cache);
+
+        for (uint8_t j = 0; j < 64; j++) {
+            if (alloc_cache[j] == 0xFF)
+                continue;
+            for (uint8_t k = 0; k < 8; k++) {
+                if (!((1 << k) & alloc_cache[j])) {
+                    alloc_cache[j] |= 1 << k;
+                    addr = ((((((addr_t) i) << 6) + ((addr_t) j)) << 3) + k)
+                           << 9;
+                    extern_memory_write(i, (char *) alloc_cache);
+                    goto extern_alloc_end;
+                }
+            }
+        }
+    }
+extern_alloc_end:
+    return addr;
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void extern_release(addr_t addr)
+{
+    extern_memory_read((addr >> 18), (char *) alloc_cache);
+    alloc_cache[(addr >> 12) & 0x3F] &= 0xFF ^ (1 << ((addr >> 9) & 0x7));
+    extern_memory_write((addr >> 18), (char *) alloc_cache);
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+addr_t disk_extern_alloc()
+{
+    addr_t addr = EXTERN_NULL;
+    for (uint8_t i = 0; i < MAP_BLOCK_CNT; i++) {
+        extern_memory_read(i + DISK_MEMORY_START, (char *) alloc_cache);
+
+        for (uint8_t j = 0; j < 64; j++) {
+            if (alloc_cache[j] == 0xFF)
+                continue;
+            for (uint8_t k = 0; k < 8; k++) {
+                if (!((1 << k) & alloc_cache[j])) {
+                    alloc_cache[j] |= 1 << k;
+                    addr = ((((((addr_t) i) << 6) + ((addr_t) j)) << 3) + k)
+                           << 9;
+                    extern_memory_write(i + DISK_MEMORY_START,
+                                        (char *) alloc_cache);
+                    goto disk_extern_alloc_end;
+                }
+            }
+        }
+    }
+disk_extern_alloc_end:
+    return addr + DISK_MEMORY_START;
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void disk_extern_release(addr_t addr)
+{
+    addr -= DISK_MEMORY_START;
+    extern_memory_read((addr >> 18) + DISK_MEMORY_START, (char *) alloc_cache);
+    alloc_cache[(addr >> 12) & 0x3F] &= 0xFF ^ (1 << ((addr >> 9) & 0x7));
+    extern_memory_write((addr >> 18) + DISK_MEMORY_START, (char *) alloc_cache);
 }
