@@ -15,15 +15,16 @@ fat32_t __fs;
 
 #define get_clus_fat_offset(fs, n) ((n * 4) % (fs)->byte_per_sec)
 
-#define get_next_clus(fs, clus, fat_buf) \
-    (*((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) & 0x0FFFFFFF)
+#define get_next_clus(fs, clus, fat_buf)                                  \
+    (*((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) & \
+     0x0FFFFFFF)
 
-#define set_next_clus(fs, clus, fat_buf, value)                      \
-    do {                                                             \
-        *((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) &= \
-            0xF0000000;                                              \
-        *((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) |= \
-            (value & 0x0FFFFFFF);                                    \
+#define set_next_clus(fs, clus, fat_buf, value)                               \
+    do {                                                                      \
+        *((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) &= \
+            0xF0000000;                                                       \
+        *((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) |= \
+            (value & 0x0FFFFFFF);                                             \
     } while (0)
 
 
@@ -164,9 +165,7 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
             fat_extern_buf + ((clus_offset / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
-
-        clus =
-            *((uint32_t *) (picos_fat_cache + (clus_offset % 64))) & 0x0FFFFFFF;
+        clus = get_next_clus(fs, clus, picos_fat_cache);
     }
 ls_end:
     disk_extern_release(fat32_dir_buf);
@@ -281,9 +280,7 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
             fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
-        clus = *((uint32_t *) (picos_fat_cache +
-                               (((clus * 4) % (fs)->byte_per_sec) % 64))) &
-               0x0FFFFFFF;
+        clus = get_next_clus(fs, clus, picos_fat_cache);
     }
 end_read:
     disk_extern_release(tmp_extern_buf);
