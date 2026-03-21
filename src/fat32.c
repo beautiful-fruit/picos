@@ -27,6 +27,8 @@ fat32_t __fs;
     } while (0)
 
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 fat32_t *create_fat32()
 {
     fat32_t *fs = NULL;
@@ -65,6 +67,8 @@ NOT_FAT32:
     return fs;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 addr_t load_dir(fat32_t *fs, uint32_t clus)
 {
     addr_t dir_buf, fat_buf;
@@ -162,8 +166,8 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
             *((uint32_t *) (picos_fat_cache + (clus_offset % 64))) & 0x0FFFFFFF;
     }
 ls_end:
-    extern_release(dir_buf);
-    extern_release(fat_buf);
+    disk_extern_release(dir_buf);
+    disk_extern_release(fat_buf);
     extern_release(now_addr);
     now_addr = last_blk;
     extern_memory_read(now_addr, (char *) now);
@@ -183,7 +187,8 @@ ls_end:
     } while (0)
 
 
-
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void ls_dir(addr_t dir)
 {
     while (1) {
@@ -195,6 +200,8 @@ void ls_dir(addr_t dir)
     }
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void free_dir_block(addr_t dir)
 {
     while (1) {
@@ -206,6 +213,8 @@ void free_dir_block(addr_t dir)
     }
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
 {
     addr_t target = EXTERN_NULL;
@@ -231,6 +240,8 @@ find_file:
     return target;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
 {
     if (file->file_size == 0)
