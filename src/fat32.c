@@ -27,6 +27,8 @@ fat32_t __fs;
     } while (0)
 
 
+addr_t fat32_dir_buf, fat_extern_buf, tmp_extern_buf;
+
 #pragma interrupt_level 1
 #pragma interrupt_level 2
 fat32_t *create_fat32()
@@ -71,10 +73,9 @@ NOT_FAT32:
 #pragma interrupt_level 2
 addr_t load_dir(fat32_t *fs, uint32_t clus)
 {
-    addr_t dir_buf, fat_buf;
-    dir_buf = disk_extern_alloc();
+    fat32_dir_buf = disk_extern_alloc();
     fat32_dir_t *dir_cache = (fat32_dir_t *) picos_cache;
-    fat_buf = disk_extern_alloc();
+    fat_extern_buf = disk_extern_alloc();
     uint32_t fat_sec = 0;
 
     /* create new dir_block */
@@ -90,10 +91,11 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
     while (1) {
         uint32_t first_sec = get_clus_first_sec(fs, clus);
         for (uint8_t i = 0; i < fs->sec_per_clus; i++) {
-            disk_read(first_sec + i, dir_buf);
+            disk_read(first_sec + i, fat32_dir_buf);
             uint16_t block_entry_start = 65535;
             for (uint8_t j = 0; j < BLOCK_SIZE / sizeof(fat32_dir_t); j += 2) {
-                extern_memory_read(dir_buf + j * 32, (char *) picos_cache);
+                extern_memory_read(fat32_dir_buf + j * 32,
+                                   (char *) picos_cache);
 
                 /* 1 block (64 bytes) == 2 dir entry (32 bytes) */
                 for (uint8_t k = 0; k < 2; k++, entry_offset++) {
@@ -152,13 +154,14 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
         }
         if (get_clus_fat_sec(fs, clus) != fat_sec) {
             fat_sec = get_clus_fat_sec(fs, clus);
-            disk_read(fat_sec, fat_buf);
+            disk_read(fat_sec, fat_extern_buf);
         }
+
 
         uint32_t clus_offset = (clus * 4) % (fs)->byte_per_sec;  // can expand
 
         extern_memory_read(
-            fat_buf + clus_offset,
+            fat_extern_buf + ((clus_offset / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
 
@@ -166,8 +169,8 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
             *((uint32_t *) (picos_fat_cache + (clus_offset % 64))) & 0x0FFFFFFF;
     }
 ls_end:
-    disk_extern_release(dir_buf);
-    disk_extern_release(fat_buf);
+    disk_extern_release(fat32_dir_buf);
+    disk_extern_release(fat_extern_buf);
     extern_release(now_addr);
     now_addr = last_blk;
     extern_memory_read(now_addr, (char *) now);
@@ -227,7 +230,7 @@ addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
             if (i == name_size &&
                 ((dir_block_t *) dir_block_cache)->file.name[i] == 0xFF) {
                 target = dir;
-                goto find_file;
+                goto find_file_done;
             }
             if (i == name_size ||
                 ((dir_block_t *) dir_block_cache)->file.name[i] != file_name[i])
@@ -236,7 +239,7 @@ addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
         dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
     }
 
-find_file:
+find_file_done:
     return target;
 }
 
@@ -248,7 +251,6 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
         return;
     if ((cnt & 0x1ff) != 0)
         return;
-    addr_t fat_extern_buf, tmp_extern_buf;
     fat_extern_buf = disk_extern_alloc();
     tmp_extern_buf = disk_extern_alloc();
 
@@ -276,8 +278,7 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
         }
 
         extern_memory_read(
-            (uint16_t) (fat_extern_buf +
-                        ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64)),
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
         clus = *((uint32_t *) (picos_fat_cache +
