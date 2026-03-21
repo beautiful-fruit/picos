@@ -299,21 +299,23 @@ void __attribute__((naked)) task4(void)
                 addr_t target_addr =
                     find_file(root, &cmd_buffer[idx], cmd_index - idx);
                 if (target_addr != EXTERN_NULL) {
-                    extern_memory_read(target_addr, (char *) picos_cache);
-                    file_t *target = (file_t *) picos_cache;
+                    extern_memory_read(target_addr, (char *) file_cache);
+                    file_t *target = (file_t *) file_cache;
                     if (target->file_size == 0)
-                        continue;
+                        goto end_cat;
                     addr_t target_buf = extern_alloc();
                     read_file(fs, target, target_buf, 512);
                     for (uint16_t i = 0; i < 512; i += 64) {
                         extern_memory_read(target_buf + i,
                                            (char *) picos_cache);
                         for (uint16_t j = 0; j < 64; j++) {
-                            putchar(picos_cache[j]);
                             if (i + j == target->file_size)
                                 goto end_cat;
+                            putchar(picos_cache[j]);
                         }
                     }
+
+                    extern_release(target_buf);
                 end_cat:
                 }
                 GIE = 1;

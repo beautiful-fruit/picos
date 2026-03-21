@@ -18,6 +18,7 @@
 #define picos_fat_cache (mem._picos_fat_cache)
 #define picos_cache (mem._picos_cache)
 #define dir_block_cache (mem._dir_block_cache)
+#define file_cache (mem._file_cache)
 
 struct memory {
     /* ========= kernel ========= */
@@ -31,6 +32,7 @@ struct memory {
     unsigned char _picos_fat_cache[64];
     unsigned char _picos_cache[64];
     unsigned char _dir_block_cache[64];
+    unsigned char _file_cache[64];
 };
 
 extern struct memory mem;
