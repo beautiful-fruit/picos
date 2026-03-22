@@ -75,6 +75,7 @@ void extern_memory_init(void)
 #pragma interrupt_level 2
 void _extern_memory_write(uint16_t block_addr, char *src)
 {
+    uint8_t tmpl = FSR0L, tmph = FSR0H;
     FSR0L = ((uint16_t) src) & 0xFF;
     FSR0H = (((uint16_t) src) >> 8) & 0xFF;
     asm("BSF LATA, 3\n");
@@ -154,12 +155,15 @@ void _extern_memory_write(uint16_t block_addr, char *src)
         "BCF LATA, 2\n"
         "SETF LATD\n"
         "BCF LATA, 3\n");
+    FSR0L = tmpl;
+    FSR0H = tmph;
 }
 
 #pragma interrupt_level 1
 #pragma interrupt_level 2
 void _extern_memory_read(uint16_t block_addr, char *dest)
 {
+    uint8_t tmpl = FSR0L, tmph = FSR0H;
     FSR0L = ((uint16_t) dest) & 0xFF;
     FSR0H = (((uint16_t) dest) >> 8) & 0xFF;
 
@@ -244,4 +248,6 @@ void _extern_memory_read(uint16_t block_addr, char *dest)
         "CLRF TRISD\n"
         "SETF LATD\n"
         "BCF LATA, 3\n");
+    FSR0L = tmpl;
+    FSR0H = tmph;
 }
