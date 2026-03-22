@@ -100,3 +100,8 @@ void ch375_init();
 #define USB_CONNECTED (1U << 0)
 #define USB_TOGGLE (1U << 1)
 extern uint8_t usb_flags;
+
+#define enable_keyboard()      \
+    do {                       \
+        INTCONbits.INT0IE = 1; \
+    } while (0)

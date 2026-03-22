@@ -5,3 +5,4 @@
     GLOBAL _idle_func
     GLOBAL _fpstart
     GLOBAL _fpend
+    GLOBAL _init

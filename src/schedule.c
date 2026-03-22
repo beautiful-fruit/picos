@@ -24,6 +24,8 @@ wait_cnt_t int2_cnt = {0};
 uint8_t tx_wait = 0xFF;
 uint8_t rc_wait = 0xFF;
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 uint8_t stack_alloc(uint8_t stack_size)
 {
     if (stack_status.use == 0xF || stack_size == 0)
@@ -45,6 +47,8 @@ uint8_t stack_alloc(uint8_t stack_size)
     return 4;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void stack_release(uint8_t pid)
 {
     for (uint8_t i = run_task[pid].stack_info.stack_start;
@@ -54,6 +58,8 @@ void stack_release(uint8_t pid)
         stack_status.use ^= (1 << i);
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 char create_process(func_t func, uint8_t stack_size)
 {
     if (stack_size > RUN_STACK_SIZE)

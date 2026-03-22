@@ -12,15 +12,8 @@ void dma_init(void)
     DMA_OE = 1;
 }
 
-void wait_for_int1(void)
-{
-    while (PORTBbits.RB1)
-        ;
-    INT1IF = 0;
-    return;
-}
-
-
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 uint8_t dma_request(struct dma_request *req)
 {
     INT1IF = 0;
@@ -55,6 +48,8 @@ uint8_t dma_request(struct dma_request *req)
     return res;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 int disk_write(uint32_t sector, uint32_t addr)
 {
     addr -= 0x4000ULL << 6;
@@ -93,6 +88,8 @@ int disk_write(uint32_t sector, uint32_t addr)
     return 0;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 int disk_read(uint32_t sector, uint32_t addr)
 {
     addr -= 0x4000ULL << 6;

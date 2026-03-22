@@ -15,31 +15,32 @@ fat32_t __fs;
 
 #define get_clus_fat_offset(fs, n) ((n * 4) % (fs)->byte_per_sec)
 
-#define get_next_clus(fs, clus, fat_buf) \
-    (*((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) & 0x0FFFFFFF)
+#define get_next_clus(fs, clus, fat_buf)                                  \
+    (*((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) & \
+     0x0FFFFFFF)
 
-#define set_next_clus(fs, clus, fat_buf, value)                      \
-    do {                                                             \
-        *((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) &= \
-            0xF0000000;                                              \
-        *((uint32_t *) (fat_buf + get_clus_fat_offset(fs, clus))) |= \
-            (value & 0x0FFFFFFF);                                    \
+#define set_next_clus(fs, clus, fat_buf, value)                               \
+    do {                                                                      \
+        *((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) &= \
+            0xF0000000;                                                       \
+        *((uint32_t *) (fat_buf + (get_clus_fat_offset(fs, clus) & 0x3f))) |= \
+            (value & 0x0FFFFFFF);                                             \
     } while (0)
 
 
+addr_t fat32_dir_buf, fat_extern_buf, tmp_extern_buf;
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 fat32_t *create_fat32()
 {
     fat32_t *fs = NULL;
-    addr_t sec_buf;
-    disk_extern_alloc(8, sec_buf);
-
+    addr_t sec_buf = disk_extern_alloc();
     while (disk_read(0, sec_buf) < 0)
         ;
-
-    extern_memory_read((uint16_t) ((sec_buf + (512 - 64)) >> 6),
-                       (char *) picos_cache);
+    extern_memory_read(sec_buf + (512 - 64), (char *) picos_cache);
     uint16_t boot_sec_sig = *((uint16_t *) (picos_cache + 62));
-    extern_memory_read((uint16_t) (sec_buf >> 6), (char *) picos_cache);
+    extern_memory_read(sec_buf, (char *) picos_cache);
     uint32_t fat_sz32 = *((uint32_t *) (picos_cache + 36));
 
 
@@ -59,8 +60,7 @@ fat32_t *create_fat32()
 
 
     disk_read(fs->fs_info, sec_buf);
-
-    extern_memory_read((uint16_t) ((sec_buf + 448) >> 6), (char *) picos_cache);
+    extern_memory_read(sec_buf + 448, (char *) picos_cache);
 
     fs->fsi_free_cnt = *((uint32_t *) (picos_cache + 40));
     fs->fsi_nxt_free = *((uint32_t *) (picos_cache + 44));
@@ -70,18 +70,17 @@ NOT_FAT32:
     return fs;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 addr_t load_dir(fat32_t *fs, uint32_t clus)
 {
-    addr_t dir_buf, fat_buf;
-    disk_extern_alloc(8, dir_buf);
+    fat32_dir_buf = disk_extern_alloc();
     fat32_dir_t *dir_cache = (fat32_dir_t *) picos_cache;
-    disk_extern_alloc(8, fat_buf);
+    fat_extern_buf = disk_extern_alloc();
     uint32_t fat_sec = 0;
 
     /* create new dir_block */
-    addr_t now_addr;
-    extern_alloc(1, now_addr);
-    // extern_memory_read(now_addr >> 6, (char *) dir_block_cache);
+    addr_t now_addr = extern_alloc();
     dir_block_t *now = (dir_block_t *) dir_block_cache;
     now->entry_offset = 0;
     now->clus = clus;
@@ -93,10 +92,10 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
     while (1) {
         uint32_t first_sec = get_clus_first_sec(fs, clus);
         for (uint8_t i = 0; i < fs->sec_per_clus; i++) {
-            disk_read(first_sec + i, dir_buf);
+            disk_read(first_sec + i, fat32_dir_buf);
             uint16_t block_entry_start = 65535;
             for (uint8_t j = 0; j < BLOCK_SIZE / sizeof(fat32_dir_t); j += 2) {
-                extern_memory_read((uint16_t) ((dir_buf >> 6) + (j >> 1)),
+                extern_memory_read(fat32_dir_buf + j * 32,
                                    (char *) picos_cache);
 
                 /* 1 block (64 bytes) == 2 dir entry (32 bytes) */
@@ -142,12 +141,11 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
                     now->file.attr = dir_cache[k].attr;
                     now->clus = clus;
 
-                    addr_t new_block;  // this is gerneral memory region
-                    extern_alloc(1, new_block);
+                    addr_t new_block =
+                        extern_alloc();  // this is gerneral memory region
                     now->next = new_block;
 
-                    extern_memory_write((uint16_t) (now_addr >> 6),
-                                        (char *) now);
+                    extern_memory_write(now_addr, (char *) now);
                     last_blk = now_addr;
                     now_addr = new_block;
                     now->entry_offset = entry_offset;
@@ -157,27 +155,26 @@ addr_t load_dir(fat32_t *fs, uint32_t clus)
         }
         if (get_clus_fat_sec(fs, clus) != fat_sec) {
             fat_sec = get_clus_fat_sec(fs, clus);
-            disk_read(fat_sec, fat_buf);
+            disk_read(fat_sec, fat_extern_buf);
         }
+
 
         uint32_t clus_offset = (clus * 4) % (fs)->byte_per_sec;  // can expand
 
         extern_memory_read(
-            (uint16_t) ((fat_buf + clus_offset) >> 6),
+            fat_extern_buf + ((clus_offset / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
-
-        clus =
-            *((uint32_t *) (picos_fat_cache + (clus_offset % 64))) & 0x0FFFFFFF;
+        clus = get_next_clus(fs, clus, picos_fat_cache);
     }
 ls_end:
-    extern_release(dir_buf);
-    extern_release(fat_buf);
+    disk_extern_release(fat32_dir_buf);
+    disk_extern_release(fat_extern_buf);
     extern_release(now_addr);
     now_addr = last_blk;
-    extern_memory_read((uint16_t) (now_addr >> 6), (char *) now);
+    extern_memory_read(now_addr, (char *) now);
     now->next = EXTERN_NULL;
-    extern_memory_write((uint16_t) (now_addr >> 6), (char *) now);
+    extern_memory_write(now_addr, (char *) now);
 
     return head;
 }
@@ -192,42 +189,47 @@ ls_end:
     } while (0)
 
 
-
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void ls_dir(addr_t dir)
 {
     while (1) {
         if (dir == EXTERN_NULL)
             break;
-        extern_memory_read((uint16_t) (dir >> 6), (char *) dir_block_cache);
+        extern_memory_read(dir, (char *) dir_block_cache);
         print_file_name(j, ((dir_block_t *) dir_block_cache)->file);
         dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
     }
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void free_dir_block(addr_t dir)
 {
     while (1) {
         if (dir == EXTERN_NULL)
             break;
-        extern_memory_read((uint16_t) dir >> 6, (char *) dir_block_cache);
+        extern_memory_read(dir, (char *) dir_block_cache);
         extern_release(dir);
         dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
     }
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
 {
     addr_t target = EXTERN_NULL;
     while (1) {
         if (dir == EXTERN_NULL)
             break;
-        extern_memory_read((uint16_t) (dir >> 6), (char *) dir_block_cache);
+        extern_memory_read(dir, (char *) dir_block_cache);
 
         for (uint8_t i = 0; i < LONGEST_NAME_SZ + 1; i++) {
             if (i == name_size &&
                 ((dir_block_t *) dir_block_cache)->file.name[i] == 0xFF) {
                 target = dir;
-                goto find_file;
+                goto find_file_done;
             }
             if (i == name_size ||
                 ((dir_block_t *) dir_block_cache)->file.name[i] != file_name[i])
@@ -236,19 +238,20 @@ addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size)
         dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
     }
 
-find_file:
+find_file_done:
     return target;
 }
 
+#pragma interrupt_level 1
+#pragma interrupt_level 2
 void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
 {
     if (file->file_size == 0)
         return;
     if ((cnt & 0x1ff) != 0)
         return;
-    addr_t fat_extern_buf, tmp_extern_buf;
-    disk_extern_alloc(BLOCK_SIZE >> 6, fat_extern_buf);
-    disk_extern_alloc(BLOCK_SIZE >> 6, tmp_extern_buf);
+    fat_extern_buf = disk_extern_alloc();
+    tmp_extern_buf = disk_extern_alloc();
 
     uint32_t clus = file->fst_clus;
     uint32_t fat_sec = 0;
@@ -259,10 +262,8 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
             disk_read(first_sec + i, tmp_extern_buf);
             for (uint16_t j = 0; j < BLOCK_SIZE;
                  j += 64, read_extern_buf += 64) {
-                extern_memory_read((uint16_t) ((tmp_extern_buf + j) >> 6),
-                                   (char *) picos_cache);
-                extern_memory_write((uint16_t) (read_extern_buf >> 6),
-                                    (char *) picos_cache);
+                extern_memory_read(tmp_extern_buf + j, (char *) picos_cache);
+                extern_memory_write(read_extern_buf, (char *) picos_cache);
             }
             cnt -= BLOCK_SIZE;
             if (cnt == 0)
@@ -276,17 +277,251 @@ void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt)
         }
 
         extern_memory_read(
-            (uint16_t) ((fat_extern_buf +
-                         ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64)) >>
-                        6),
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
             (char *) picos_fat_cache);  // maybe can reduce memory read
 
-        clus = *((uint32_t *) (picos_fat_cache +
-                               (((clus * 4) % (fs)->byte_per_sec) % 64))) &
-               0x0FFFFFFF;
+        clus = get_next_clus(fs, clus, picos_fat_cache);
     }
 end_read:
     disk_extern_release(tmp_extern_buf);
     disk_extern_release(fat_extern_buf);
     return;
+}
+
+
+/* check if fsi_nxt_free is used, if still free do nothing, is used find new
+ * fsi_nxt_free */
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void update_new_fsi_nxt_free(fat32_t *fs,
+                             addr_t _fat_extern_buf,
+                             uint32_t fat_sec)
+{
+    char flag = 0;
+    // if has fat_buf, use it
+
+    if ((_fat_extern_buf == EXTERN_NULL) ||
+        (get_clus_fat_sec(fs, fs->fsi_nxt_free) != fat_sec)) {
+        fat_sec = get_clus_fat_sec(fs, fs->fsi_nxt_free);
+        _fat_extern_buf = disk_extern_alloc();
+        disk_read(fat_sec, _fat_extern_buf);
+        flag = 1;
+    }
+
+    extern_memory_read(
+        _fat_extern_buf +
+            ((((fs->fsi_nxt_free * 4) % (fs)->byte_per_sec) / 64) * 64),
+        (char *) picos_fat_cache);
+
+    if (get_next_clus(fs, fs->fsi_nxt_free, picos_fat_cache) == 0)
+        goto fsi_nxt_free_still_free;
+
+    fs->fsi_nxt_free++;
+
+    while (get_next_clus(fs, fs->fsi_nxt_free, picos_fat_cache) != 0) {
+        fs->fsi_nxt_free++;
+        if (((fs)->first_fat_sec +
+             (fs->fsi_nxt_free * 4) / (fs)->byte_per_sec) != fat_sec) {
+            fat_sec = ((fs)->first_fat_sec +
+                       (fs->fsi_nxt_free * 4) / (fs)->byte_per_sec);
+            disk_read(fat_sec, _fat_extern_buf);
+        }
+        extern_memory_read(
+            _fat_extern_buf +
+                ((((fs->fsi_nxt_free * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+    }
+    fs->fsi_free_cnt--;
+
+fsi_nxt_free_still_free:
+    if (flag)
+        disk_extern_release(_fat_extern_buf);
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void write_file(fat32_t *fs, file_t *file, const char *buf, uint16_t size)
+{
+    uint32_t clus = file->fst_clus, last_clus = file->fst_clus;
+
+    fat_extern_buf = disk_extern_alloc();
+    tmp_extern_buf = disk_extern_alloc();
+    uint32_t fat_sec = get_clus_fat_sec(fs, clus);
+    disk_read(fat_sec, fat_extern_buf);
+    extern_memory_read(
+        fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+        (char *) picos_fat_cache);
+    uint16_t write_cnt = 0;
+
+    file->attr |= DIR_ATTR_DIRTY;
+
+    file->file_size = size;
+
+    while (clus < END_OF_CLUS) {
+        uint32_t next_clus = get_next_clus(fs, clus, picos_fat_cache);
+        if (write_cnt < size) {
+            uint32_t first_sec = get_clus_first_sec(fs, clus);
+            for (uint8_t i = 0; i < fs->sec_per_clus; i++) {
+                uint16_t j;
+                for (j = write_cnt; j < (write_cnt + BLOCK_SIZE) && j < size;
+                     j += 64) {
+                    memcpy(picos_cache, buf + j, min(64, size - j));
+                    extern_memory_write(tmp_extern_buf + j - write_cnt,
+                                        (char *) picos_cache);
+                }
+                disk_write(first_sec + i, tmp_extern_buf);
+
+                write_cnt += BLOCK_SIZE;
+                if (write_cnt >= size) {
+                    // update fat buffer to END_OF_CLUS
+                    set_next_clus(fs, clus, picos_fat_cache, END_OF_CLUS);
+                    break;
+                }
+            }
+        } else {
+            set_next_clus(fs, clus, picos_fat_cache, 0);
+            fs->fsi_free_cnt++;
+            fs->fsi_nxt_free = min(fs->fsi_nxt_free, clus);
+        }
+
+        // maybe can reduce write
+        extern_memory_write(
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+        if (get_clus_fat_sec(fs, clus) != fat_sec) {
+            // write back the FAT
+            if (write_cnt >= size)
+                disk_write(fat_sec, fat_extern_buf);
+            fat_sec = get_clus_fat_sec(fs, clus);
+            disk_read(fat_sec, fat_extern_buf);
+            extern_memory_read(
+                fat_extern_buf +
+                    ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+                (char *) picos_fat_cache);
+        }
+        last_clus = clus;
+        clus = next_clus;
+    }
+
+    clus = last_clus;
+    while (write_cnt < size) {
+        // read/write maybe can reduce
+        extern_memory_read(
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+        set_next_clus(fs, clus, picos_fat_cache, fs->fsi_nxt_free);
+        extern_memory_write(
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+        clus = fs->fsi_nxt_free;
+        if (get_clus_fat_sec(fs, clus) != fat_sec) {
+            // write back the FAT
+            disk_write(fat_sec, fat_extern_buf);
+            fat_sec = get_clus_fat_sec(fs, clus);
+            disk_read(fat_sec, fat_extern_buf);
+        }
+        extern_memory_read(
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+        set_next_clus(fs, clus, picos_fat_cache, END_OF_CLUS);
+        extern_memory_write(
+            fat_extern_buf + ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+            (char *) picos_fat_cache);
+        update_new_fsi_nxt_free(fs, fat_extern_buf, fat_sec);
+        uint32_t first_sec = get_clus_first_sec(fs, clus);
+        for (uint8_t i = 0; i < fs->sec_per_clus && write_cnt < size;
+             i++, write_cnt += BLOCK_SIZE) {
+            for (uint16_t j = write_cnt;
+                 j < (write_cnt + BLOCK_SIZE) && j < size; j += 64) {
+                memcpy(picos_cache, buf + j, min(64, size - j));
+                extern_memory_write(tmp_extern_buf + j - write_cnt,
+                                    (char *) picos_cache);
+            }
+            disk_write(first_sec + i, tmp_extern_buf);
+        }
+    }
+    disk_write(fat_sec, fat_extern_buf);
+
+    disk_extern_release(fat_extern_buf);
+    disk_extern_release(tmp_extern_buf);
+    return;
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void dir_update(fat32_t *fs, addr_t dir)
+{
+    fat_extern_buf = disk_extern_alloc();
+    fat32_dir_buf = disk_extern_alloc();
+
+    uint32_t fat_sec = 0;
+    uint32_t dir_sec = 0;
+    while (1) {
+        if (dir == EXTERN_NULL)
+            break;
+        extern_memory_read(dir, (char *) dir_block_cache);
+
+        if (!(((dir_block_t *) dir_block_cache)->file.attr & DIR_ATTR_DIRTY))
+            goto next_dir;
+        if (!(((dir_block_t *) dir_block_cache)->file.attr &
+              DIR_ATTR_NAME_CHANGE)) {
+            uint32_t x =
+                ((dir_block_t *) dir_block_cache)->file.block_entry_end;
+            uint32_t clus_num = x / (BLOCK_SIZE / 32 * fs->sec_per_clus);
+            uint8_t sec = (x / (BLOCK_SIZE / 32)) % fs->sec_per_clus;
+
+            uint32_t dir_num = (x / fs->sec_per_clus) % (BLOCK_SIZE / 32);
+            uint32_t clus = ((dir_block_t *) dir_block_cache)->clus;
+
+            for (uint32_t j = 0; j < clus_num; j++) {
+                if (((fs)->first_fat_sec + (clus * 4) / (fs)->byte_per_sec) !=
+                    fat_sec) {
+                    fat_sec =
+                        ((fs)->first_fat_sec + (clus * 4) / (fs)->byte_per_sec);
+                    disk_read(fat_sec, fat_extern_buf);
+                }
+                extern_memory_read(
+                    fat_extern_buf +
+                        ((((clus * 4) % (fs)->byte_per_sec) / 64) * 64),
+                    (char *) picos_fat_cache);
+                clus = get_next_clus(fs, clus, picos_fat_cache);
+            }
+            if (dir_sec != get_clus_first_sec(fs, clus) + sec) {
+                if (dir_sec)
+                    disk_write(dir_sec, fat32_dir_buf);
+                dir_sec = get_clus_first_sec(fs, clus) + sec;
+                disk_read(dir_sec, fat32_dir_buf);
+
+                /* update dir block by 64 byte access */
+                extern_memory_read(fat32_dir_buf + ((dir_num & 0xFFFE) << 5),
+                                   (char *) picos_cache);
+
+                ((fat32_dir_t *) picos_cache)[dir_num & 1].file_size =
+                    ((dir_block_t *) dir_block_cache)->file.file_size;
+                extern_memory_write(fat32_dir_buf + ((dir_num & 0xFFFE) << 5),
+                                    (char *) picos_cache);
+            }
+        }
+    next_dir:
+        dir = (addr_t) (((dir_block_t *) dir_block_cache)->next);
+    }
+    if (dir_sec)
+        disk_write(dir_sec, fat32_dir_buf);
+    disk_extern_release(fat32_dir_buf);
+    disk_extern_release(fat_extern_buf);
+}
+
+#pragma interrupt_level 1
+#pragma interrupt_level 2
+void release_fat32(fat32_t **fs)
+{
+    // write back fsinfo
+    tmp_extern_buf = disk_extern_alloc();
+
+    *((uint32_t *) (picos_cache + 40)) = (*fs)->fsi_free_cnt;
+    *((uint32_t *) (picos_cache + 44)) = (*fs)->fsi_nxt_free;
+    extern_memory_write(tmp_extern_buf + 448, (char *) picos_cache);
+    disk_write((*fs)->fs_info, tmp_extern_buf);
+
+    disk_extern_release(tmp_extern_buf);
 }
