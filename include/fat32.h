@@ -95,3 +95,13 @@ void free_dir_block(addr_t dir);
 addr_t find_file(addr_t dir, const char *file_name, uint8_t name_size);
 
 void read_file(fat32_t *fs, file_t *file, addr_t read_extern_buf, uint16_t cnt);
+
+void update_new_fsi_nxt_free(fat32_t *fs,
+                             addr_t fat_extern_buf,
+                             uint32_t fat_sec);
+
+void write_file(fat32_t *fs, file_t *file, const char *buf, uint16_t size);
+
+void dir_update(fat32_t *fs, addr_t dir);
+
+void release_fat32(fat32_t **fs);
