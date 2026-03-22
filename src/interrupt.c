@@ -1,6 +1,7 @@
 #include <ch375.h>
 #include <interrupt.h>
 #include <kernel.h>
+#include <memory.h>
 #include <schedule.h>
 #include <type.h>
 
@@ -20,9 +21,22 @@ inline void timer0_init(void)
 
 void __attribute__((naked)) isr(void)
 {
-    current->context.status = STATUS;
-    current->context.wreg = WREG;
-    current->context.bsr = BSR;
+    asm("MOVFF WREG, 0x100\n"
+        "MOVFF STATUS, 0x101\n"
+        "MOVFF BSR, 0x102\n"
+        "MOVFF FSR0L, 0x103\n"
+        "MOVFF FSR0H, 0x104\n"
+        "MOVFF FSR1L, 0x105\n"
+        "MOVFF FSR1H, 0x106\n"
+        "MOVFF FSR2L, 0x107\n"
+        "MOVFF FSR2H, 0x108\n");
+
+    current->context.wreg = mem._saved_w;
+    current->context.status = mem._saved_s;
+    current->context.bsr = mem._saved_b;
+    current->context.fsr0 = mem._saved_fsr0;
+    current->context.fsr1 = mem._saved_fsr1;
+    current->context.fsr2 = mem._saved_fsr2;
 
     current->context.pc.l = TOSL;
     current->context.pc.h = TOSH;
@@ -30,10 +44,6 @@ void __attribute__((naked)) isr(void)
     asm("POP");
 
     current->context.rasp = STKPTR;
-
-    current->context.fsr0 = FSR0;
-    current->context.fsr1 = FSR1;
-    current->context.fsr2 = FSR2;
 
     current->context.prod = PROD;
 
@@ -133,10 +143,6 @@ void __attribute__((naked)) isr(void)
     TOSH = current->context.pc.h;
     TOSU = current->context.pc.u;
 
-    FSR0 = current->context.fsr0;
-    FSR1 = current->context.fsr1;
-    FSR2 = current->context.fsr2;
-
     PROD = current->context.prod;
 
     TABLAT = current->context.tablat;
@@ -147,9 +153,21 @@ void __attribute__((naked)) isr(void)
 
     EECON1 = current->context.eecon1;
 
-    STATUS = current->context.status;
-    WREG = current->context.wreg;
-    BSR = current->context.bsr;
+    mem._saved_w = current->context.wreg;
+    mem._saved_s = current->context.status;
+    mem._saved_b = current->context.bsr;
+    mem._saved_fsr0 = current->context.fsr0;
+    mem._saved_fsr1 = current->context.fsr1;
+    mem._saved_fsr2 = current->context.fsr2;
 
-    asm("RETFIE");
+    asm("MOVFF 0x107, FSR2L\n"
+        "MOVFF 0x108, FSR2H\n"
+        "MOVFF 0x105, FSR1L\n"
+        "MOVFF 0x106, FSR1H\n"
+        "MOVFF 0x103, FSR0L\n"
+        "MOVFF 0x104, FSR0H\n"
+        "MOVFF 0x102, BSR\n"
+        "MOVFF 0x101, STATUS\n"
+        "MOVFF 0x100, WREG\n"
+        "RETFIE\n");
 }
